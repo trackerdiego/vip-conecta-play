@@ -1,0 +1,18 @@
+{
+  "name": "Parada VIP",
+  "short_name": "Parada VIP",
+  "description": "Ganhe entregando ou indicando!",
+  "theme_color": "#6C2BD9",
+  "background_color": "#0F0A1E",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
