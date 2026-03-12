@@ -9,17 +9,31 @@ import { LevelBadge } from '@/components/shared/LevelBadge';
 import { MissionCard } from '@/components/shared/MissionCard';
 import { ParticlesBackground } from '@/components/shared/ParticlesBackground';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { mockInfluencer, mockMissions, mockPrizes } from '@/data/mockData';
+import { useAuthStore } from '@/stores/authStore';
+import { useWallet } from '@/hooks/useWallet';
+import { useMissions } from '@/hooks/useMissions';
+import { useReferralStats } from '@/hooks/useReferralStats';
+import { getLevelInfo } from '@/lib/levels';
+import { mockPrizes } from '@/data/mockData';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function InfluencerDashboard() {
   const navigate = useNavigate();
   const [showShareSheet, setShowShareSheet] = useState(false);
-  const data = mockInfluencer;
-  const missions = mockMissions;
+  const profile = useAuthStore((s) => s.profile);
+  const { balance, loading: walletLoading } = useWallet();
+  const { missions, loading: missionsLoading, claimMission } = useMissions();
+  const { totalReferrals, loading: referralsLoading } = useReferralStats();
+
+  const level = profile?.level ?? 1;
+  const xp = profile?.xp_points ?? 0;
+  const { levelName, xpMax } = getLevelInfo(level);
+  const name = profile?.full_name ?? 'Usuário';
+  const referralCode = profile?.referral_code ?? '';
   const nextPrize = mockPrizes[0];
 
-  const shareLink = `https://paradadoacai.app/r/${data.referralCode}`;
+  const shareLink = `https://paradadoacai.app/r/${referralCode}`;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -41,6 +55,23 @@ export default function InfluencerDashboard() {
   };
 
   const completedCount = missions.filter((m) => m.completed).length;
+  const isLoading = walletLoading || missionsLoading || referralsLoading;
+
+  if (isLoading && !profile) {
+    return (
+      <div className="min-h-screen bg-brand-dark text-primary-foreground pb-24 dark">
+        <div className="max-w-md mx-auto px-4 pt-6 space-y-4">
+          <Skeleton className="h-20 w-full rounded-2xl bg-muted/10" />
+          <Skeleton className="h-40 w-full rounded-3xl bg-muted/10" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-28 rounded-2xl bg-muted/10" />
+            <Skeleton className="h-28 rounded-2xl bg-muted/10" />
+          </div>
+        </div>
+        <BottomNav variant="influencer" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-brand-dark text-primary-foreground pb-24 dark">
@@ -49,11 +80,11 @@ export default function InfluencerDashboard() {
         {/* Header */}
         <div className="glass-dark rounded-2xl p-4 flex items-center gap-3 mb-6">
           <div className="h-12 w-12 rounded-full bg-gradient-to-br from-brand-purple to-brand-orange flex items-center justify-center ring-2 ring-brand-purple-light/50 text-lg font-bold">
-            {data.name.charAt(0)}
+            {name.charAt(0)}
           </div>
           <div className="flex-1">
-            <h2 className="font-heading font-bold text-lg">Olá, {data.name.split(' ')[0]} 👋</h2>
-            <LevelBadge level={data.level} name={data.levelName} />
+            <h2 className="font-heading font-bold text-lg">Olá, {name.split(' ')[0]} 👋</h2>
+            <LevelBadge level={level} name={levelName} />
           </div>
           <button className="p-2 rounded-full hover:bg-muted/10 transition-colors">
             <Bell className="h-5 w-5 text-muted-foreground" />
@@ -69,7 +100,7 @@ export default function InfluencerDashboard() {
           <ParticlesBackground />
           <div className="relative z-10">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Saldo Disponível</p>
-            <CurrencyDisplay value={data.balance} size="xl" glow className="text-primary-foreground block mb-4" />
+            <CurrencyDisplay value={balance} size="xl" glow className="text-primary-foreground block mb-4" />
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -95,17 +126,14 @@ export default function InfluencerDashboard() {
           <div className="glass-dark rounded-2xl p-4">
             <Crown className="h-5 w-5 text-brand-purple-light mb-2" />
             <p className="text-xs text-muted-foreground">Nível Atual</p>
-            <p className="font-heading font-bold text-lg">{data.levelName}</p>
-            <Progress value={(data.xp / data.xpMax) * 100} className="h-1.5 mt-2 bg-muted/20" />
-            <p className="text-[10px] text-muted-foreground mt-1">{data.xp}/{data.xpMax} XP</p>
+            <p className="font-heading font-bold text-lg">{levelName}</p>
+            <Progress value={(xp / xpMax) * 100} className="h-1.5 mt-2 bg-muted/20" />
+            <p className="text-[10px] text-muted-foreground mt-1">{xp}/{xpMax} XP</p>
           </div>
           <div className="glass-dark rounded-2xl p-4">
             <Zap className="h-5 w-5 text-brand-green mb-2" />
             <p className="text-xs text-muted-foreground">Indicações</p>
-            <p className="font-heading font-bold text-lg">{data.totalReferrals} vendas</p>
-            <span className="inline-block mt-1 rounded-full bg-brand-green/20 px-2 py-0.5 text-[10px] text-brand-green font-semibold">
-              +{data.referralsToday} hoje
-            </span>
+            <p className="font-heading font-bold text-lg">{totalReferrals} vendas</p>
           </div>
         </div>
 
@@ -125,11 +153,17 @@ export default function InfluencerDashboard() {
             <span className="text-xs text-muted-foreground">{completedCount}/{missions.length} completas</span>
           </div>
           <div className="space-y-3">
+            {missions.length === 0 && !missionsLoading && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma missão disponível</p>
+            )}
             {missions.map((m) => (
               <MissionCard
                 key={m.id}
                 mission={m}
-                onClaim={(id) => toast.success('Recompensa resgatada! 🎉')}
+                onClaim={(id) => {
+                  claimMission.mutate(id);
+                  toast.success('Recompensa resgatada! 🎉');
+                }}
               />
             ))}
           </div>

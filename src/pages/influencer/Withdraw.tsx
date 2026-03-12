@@ -4,9 +4,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
-import { mockInfluencer } from '@/data/mockData';
+import { useWallet } from '@/hooks/useWallet';
+import { useWithdrawals } from '@/hooks/useWithdrawals';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 const pixTypes = ['CPF', 'E-mail', 'Telefone', 'Chave aleatória'];
 
@@ -14,7 +17,8 @@ export default function InfluencerWithdraw() {
   const [amount, setAmount] = useState('');
   const [pixType, setPixType] = useState('CPF');
   const [pixKey, setPixKey] = useState('');
-  const balance = mockInfluencer.balance;
+  const { balance, loading: walletLoading } = useWallet();
+  const { withdrawals, loading: withdrawalsLoading, createWithdrawal } = useWithdrawals();
   const numAmount = parseFloat(amount) || 0;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,7 +31,23 @@ export default function InfluencerWithdraw() {
       toast.error('Saldo insuficiente');
       return;
     }
-    toast.success('Saque solicitado! Processamento em até 2 dias úteis.');
+    createWithdrawal.mutate(
+      { amount: numAmount, pixKey: `${pixType}: ${pixKey}` },
+      {
+        onSuccess: () => {
+          toast.success('Saque solicitado! Processamento em até 2 dias úteis.');
+          setAmount('');
+          setPixKey('');
+        },
+        onError: () => toast.error('Erro ao solicitar saque'),
+      }
+    );
+  };
+
+  const statusMap: Record<string, { label: string; color: string }> = {
+    pending: { label: 'Pendente', color: 'text-brand-orange' },
+    approved: { label: 'Aprovado', color: 'text-brand-green' },
+    rejected: { label: 'Rejeitado', color: 'text-destructive' },
   };
 
   return (
@@ -37,7 +57,11 @@ export default function InfluencerWithdraw() {
 
         <div className="glass-dark rounded-2xl p-5 mb-6 text-center">
           <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Saldo Disponível</p>
-          <CurrencyDisplay value={balance} size="lg" glow className="text-primary-foreground" />
+          {walletLoading ? (
+            <Skeleton className="h-8 w-32 mx-auto bg-muted/10" />
+          ) : (
+            <CurrencyDisplay value={balance} size="lg" glow className="text-primary-foreground" />
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,17 +119,38 @@ export default function InfluencerWithdraw() {
 
           <Button
             type="submit"
-            disabled={numAmount < 20 || numAmount > balance}
+            disabled={numAmount < 20 || numAmount > balance || createWithdrawal.isPending}
             className="w-full bg-brand-purple hover:bg-brand-purple/90 rounded-xl h-12 disabled:opacity-50"
           >
-            Solicitar Saque
+            {createWithdrawal.isPending ? 'Processando...' : 'Solicitar Saque'}
           </Button>
         </form>
 
         <h2 className="font-heading font-bold mt-8 mb-3">Saques Anteriores</h2>
-        <div className="glass-dark rounded-2xl p-4 text-center text-muted-foreground">
-          <p className="text-sm">Nenhum saque realizado</p>
-        </div>
+        {withdrawalsLoading ? (
+          <Skeleton className="h-20 w-full rounded-2xl bg-muted/10" />
+        ) : withdrawals.length === 0 ? (
+          <div className="glass-dark rounded-2xl p-4 text-center text-muted-foreground">
+            <p className="text-sm">Nenhum saque realizado</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {withdrawals.map((w) => {
+              const st = statusMap[w.status ?? 'pending'] ?? statusMap.pending;
+              return (
+                <div key={w.id} className="glass-dark rounded-xl p-3 flex items-center justify-between">
+                  <div>
+                    <CurrencyDisplay value={w.amount} size="sm" className="text-primary-foreground" />
+                    <p className="text-[10px] text-muted-foreground">
+                      {w.created_at ? format(new Date(w.created_at), 'dd/MM/yyyy HH:mm') : ''}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-semibold ${st.color}`}>{st.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       <BottomNav variant="influencer" />
     </div>
