@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -18,13 +19,32 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error('E-mail ou senha incorretos');
       return;
     }
-    // Auth listener in App will handle redirect
-    navigate('/', { replace: true });
+
+    // Fetch role to redirect correctly
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const role = roleData?.role;
+      setLoading(false);
+      if (role === 'driver') {
+        navigate('/driver/map', { replace: true });
+      } else {
+        navigate('/influencer/dashboard', { replace: true });
+      }
+    } else {
+      setLoading(false);
+      navigate('/influencer/dashboard', { replace: true });
+    }
   };
 
   const handleGoogleLogin = async () => {

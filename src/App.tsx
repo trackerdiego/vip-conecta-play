@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
+import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 
 // Pages
 import SplashScreen from '@/pages/SplashScreen';
@@ -35,7 +36,6 @@ function AuthListener() {
       async (_event, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Defer profile fetch to avoid deadlock
           setTimeout(() => fetchProfile(), 0);
         }
         setLoading(false);
@@ -72,19 +72,23 @@ const App = () => (
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Influencer */}
-          <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
-          <Route path="/influencer/missions" element={<InfluencerMissions />} />
-          <Route path="/influencer/rewards" element={<InfluencerRewards />} />
-          <Route path="/influencer/referrals" element={<InfluencerReferrals />} />
-          <Route path="/influencer/withdraw" element={<InfluencerWithdraw />} />
-          <Route path="/influencer/profile" element={<InfluencerProfile />} />
+          {/* Influencer — Protected */}
+          <Route element={<ProtectedRoute requiredRole="influencer" />}>
+            <Route path="/influencer/dashboard" element={<InfluencerDashboard />} />
+            <Route path="/influencer/missions" element={<InfluencerMissions />} />
+            <Route path="/influencer/rewards" element={<InfluencerRewards />} />
+            <Route path="/influencer/referrals" element={<InfluencerReferrals />} />
+            <Route path="/influencer/withdraw" element={<InfluencerWithdraw />} />
+            <Route path="/influencer/profile" element={<InfluencerProfile />} />
+          </Route>
 
-          {/* Driver */}
-          <Route path="/driver/map" element={<DriverMap />} />
-          <Route path="/driver/history" element={<DriverHistory />} />
-          <Route path="/driver/earnings" element={<DriverEarnings />} />
-          <Route path="/driver/profile" element={<DriverProfile />} />
+          {/* Driver — Protected */}
+          <Route element={<ProtectedRoute requiredRole="driver" />}>
+            <Route path="/driver/map" element={<DriverMap />} />
+            <Route path="/driver/history" element={<DriverHistory />} />
+            <Route path="/driver/earnings" element={<DriverEarnings />} />
+            <Route path="/driver/profile" element={<DriverProfile />} />
+          </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
