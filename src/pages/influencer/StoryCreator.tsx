@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Share2, Palette, QrCode } from 'lucide-react';
+import { Download, Share2, QrCode, Copy, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { useAuthStore } from '@/stores/authStore';
