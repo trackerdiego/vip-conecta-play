@@ -10,6 +10,7 @@ export function usePushNotifications() {
 
     const setup = async () => {
       try {
+        // @ts-ignore - installed locally after export
         const { PushNotifications } = await import('@capacitor/push-notifications');
 
         const perm = await PushNotifications.requestPermissions();
