@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface DriverStatusPillProps {
@@ -6,21 +7,41 @@ interface DriverStatusPillProps {
 }
 
 export function DriverStatusPill({ isOnline, onToggle }: DriverStatusPillProps) {
+  const handleToggle = () => {
+    if (navigator.vibrate) navigator.vibrate(50);
+    onToggle();
+  };
+
   return (
     <button
-      onClick={onToggle}
+      onClick={handleToggle}
       className={cn(
-        'flex items-center gap-2 rounded-full px-5 py-2.5 font-heading font-semibold text-sm shadow-lg transition-all active:scale-95',
+        'relative flex items-center gap-3 rounded-full pl-2 pr-5 py-1.5 font-heading font-semibold text-sm shadow-xl transition-colors duration-300',
         isOnline
-          ? 'bg-brand-green text-primary-foreground'
-          : 'bg-muted text-muted-foreground'
+          ? 'bg-brand-green'
+          : 'bg-muted'
       )}
+      style={{ minWidth: 140, height: 48 }}
     >
+      {/* Track with sliding thumb */}
+      <div className="relative h-9 w-16 rounded-full bg-background/20 shrink-0">
+        <motion.div
+          layout
+          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+          className={cn(
+            'absolute top-1 h-7 w-7 rounded-full shadow-md',
+            isOnline ? 'bg-primary-foreground' : 'bg-muted-foreground'
+          )}
+          style={{ left: isOnline ? 'calc(100% - 32px)' : 4 }}
+        />
+      </div>
+
       <span className={cn(
-        'h-2.5 w-2.5 rounded-full',
-        isOnline ? 'bg-primary-foreground animate-pulse' : 'bg-muted-foreground'
-      )} />
-      {isOnline ? 'Online' : 'Offline'}
+        'text-sm font-bold tracking-wide',
+        isOnline ? 'text-primary-foreground' : 'text-muted-foreground'
+      )}>
+        {isOnline ? 'Online' : 'Offline'}
+      </span>
     </button>
   );
 }
