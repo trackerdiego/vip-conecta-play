@@ -29,6 +29,11 @@ import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
 
+function AppInitializer() {
+  useCapgoUpdater();
+  return null;
+}
+
 function AuthListener() {
   const { setUser, setLoading, fetchProfile } = useAuthStore();
 
