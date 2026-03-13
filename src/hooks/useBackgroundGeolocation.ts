@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 interface BackgroundGeoConfig {
   enabled: boolean;
@@ -25,9 +25,7 @@ export function useBackgroundGeolocation({ enabled, onPosition }: BackgroundGeoC
     if (!isNative) return; // Browser uses regular watchPosition via useNativeGeolocation
 
     try {
-      // Dynamic import so it doesn't break if plugin isn't installed
       // Access plugin from Capacitor's plugin registry if installed
-      const { registerPlugin } = await import('@capacitor/core');
       const bgGeo = registerPlugin<any>('BackgroundGeolocation');
       if (!bgGeo) {
         console.info('[BackgroundGeo] Plugin not found, using foreground geolocation only');
