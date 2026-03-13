@@ -120,7 +120,7 @@ export default function DriverMap() {
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
         <MapCenterUpdater center={position} />
       </MapContainer>
