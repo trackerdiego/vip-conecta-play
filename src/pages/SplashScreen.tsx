@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ParticlesBackground } from '@/components/shared/ParticlesBackground';
 import { useAuthStore } from '@/stores/authStore';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 export default function SplashScreen() {
   const navigate = useNavigate();
@@ -24,28 +24,19 @@ export default function SplashScreen() {
   }, [ready, loading, user, role, navigate]);
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-brand-dark overflow-hidden">
-      <ParticlesBackground />
+    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-b from-background via-accent/60 to-background overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
       <motion.div
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
         className="z-10 flex flex-col items-center gap-4"
       >
-        <div className="relative">
-          <div className="absolute -inset-4 rounded-full bg-brand-purple/20 animate-pulse-ring" />
-          <div className="h-24 w-24 rounded-3xl bg-gradient-to-br from-brand-purple to-brand-purple-light flex items-center justify-center shadow-xl glow-purple">
-            <span className="text-4xl">🍇</span>
-          </div>
-        </div>
-        <motion.h1
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="font-heading text-3xl font-bold text-primary-foreground"
-        >
-          Parada VIP
-        </motion.h1>
+        <motion.img
+          src={logoParadaVip}
+          alt="Parada do Açaí VIP"
+          className="h-28 w-auto drop-shadow-lg"
+        />
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
