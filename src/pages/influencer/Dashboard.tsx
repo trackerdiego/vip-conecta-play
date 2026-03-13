@@ -25,6 +25,7 @@ export default function InfluencerDashboard() {
   const { balance, loading: walletLoading } = useWallet();
   const { missions, loading: missionsLoading, claimMission } = useMissions();
   const { totalReferrals, loading: referralsLoading } = useReferralStats();
+  const { prizes } = usePrizes();
 
   const level = profile?.level ?? 1;
   const xp = profile?.xp_points ?? 0;
