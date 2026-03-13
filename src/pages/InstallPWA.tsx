@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Download, Share, Plus, CheckCircle2, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 type Platform = 'android' | 'ios' | 'desktop';
 
