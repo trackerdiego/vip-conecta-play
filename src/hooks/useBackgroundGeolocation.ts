@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 
 interface BackgroundGeoConfig {
   enabled: boolean;
