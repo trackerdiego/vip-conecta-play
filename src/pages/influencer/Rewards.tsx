@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/shared/BottomNav';
-import { mockPrizes } from '@/data/mockData';
+import { usePrizes } from '@/hooks/usePrizes';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const categories = ['Todos', 'Excursões', 'Cupons', 'Cashback'];
 const categoryMap: Record<string, string> = {
@@ -13,10 +14,11 @@ const categoryMap: Record<string, string> = {
 
 export default function InfluencerRewards() {
   const [activeFilter, setActiveFilter] = useState('Todos');
+  const { prizes, loading } = usePrizes();
 
   const filtered = activeFilter === 'Todos'
-    ? mockPrizes
-    : mockPrizes.filter((p) => p.category === categoryMap[activeFilter]);
+    ? prizes
+    : prizes.filter((p) => p.category === categoryMap[activeFilter]);
 
   return (
     <div className="min-h-screen bg-brand-dark text-primary-foreground pb-24 dark">
