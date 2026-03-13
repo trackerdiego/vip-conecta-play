@@ -4,13 +4,6 @@ import { useAuthStore } from '@/stores/authStore';
 
 async function invokeTraccar(action: string, body?: unknown, params?: Record<string, string>) {
   const searchParams = new URLSearchParams({ action, ...params });
-  const { data, error } = await supabase.functions.invoke('traccar-proxy', {
-    body: body ?? {},
-    headers: { 'Content-Type': 'application/json' },
-    // @ts-ignore - query params via URL
-  });
-  
-  // We need to use fetch directly to pass query params
   const session = await supabase.auth.getSession();
   const token = session.data.session?.access_token;
   if (!token) throw new Error('Not authenticated');
