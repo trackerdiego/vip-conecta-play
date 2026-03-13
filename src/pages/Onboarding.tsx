@@ -51,7 +51,7 @@ export default function Onboarding() {
           >
             <div className="rounded-2xl overflow-hidden shadow-lg ring-1 ring-border bg-card">
               <img
-                src={imgInfluencer}
+                src={imgDriver}
                 alt="Influenciador"
                 className="w-full aspect-square object-cover"
               />
