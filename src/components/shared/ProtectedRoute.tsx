@@ -21,7 +21,12 @@ export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
   }
 
   if (requiredRole && role && role !== requiredRole) {
-    const redirect = role === 'driver' ? '/driver/map' : '/influencer/dashboard';
+    const redirectMap: Record<string, string> = {
+      driver: '/driver/map',
+      influencer: '/influencer/dashboard',
+      admin: '/admin',
+    };
+    const redirect = redirectMap[role] ?? '/';
     return <Navigate to={redirect} replace />;
   }
 
