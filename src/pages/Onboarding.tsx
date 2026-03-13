@@ -8,7 +8,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
 
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden bg-gradient-to-b from-white via-purple-50/60 to-white">
+    <div className="fixed inset-0 flex flex-col overflow-hidden bg-gradient-to-b from-background via-accent/60 to-background">
       {/* Subtle decorative radial */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
 
