@@ -33,7 +33,7 @@ export default function InfluencerDashboard() {
   const referralCode = profile?.referral_code ?? '';
   const nextPrize = mockPrizes[0];
 
-  const shareLink = `https://paradadoacai.app/r/${referralCode}`;
+  const shareLink = `https://app.paradadoacai.online/r/${referralCode}`;
 
   const handleShare = async () => {
     if (navigator.share) {
