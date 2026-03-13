@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
+import { useCapgoUpdater } from '@/hooks/useCapgoUpdater';
 
 // Pages
 import SplashScreen from '@/pages/SplashScreen';
