@@ -67,6 +67,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster position="bottom-center" />
       <BrowserRouter>
+        <AppInitializer />
         <AuthListener />
         <Routes>
           <Route path="/" element={<SplashScreen />} />
