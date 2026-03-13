@@ -26,16 +26,9 @@ export function useBackgroundGeolocation({ enabled, onPosition }: BackgroundGeoC
 
     try {
       // Dynamic import so it doesn't break if plugin isn't installed
-      // Dynamic import so it doesn't break if plugin isn't installed
-      let bgGeoModule: any = null;
-      try {
-        bgGeoModule = await import('@capacitor-community/background-geolocation');
-      } catch {
-        console.info('[BackgroundGeo] Plugin not installed, skipping');
-        return;
-      }
-
-      const bgGeo = bgGeoModule?.BackgroundGeolocationPlugin ?? bgGeoModule?.default;
+      // Access plugin from Capacitor's plugin registry if installed
+      const { registerPlugin } = await import('@capacitor/core');
+      const bgGeo = registerPlugin<any>('BackgroundGeolocation');
       if (!bgGeo) {
         console.info('[BackgroundGeo] Plugin not found, using foreground geolocation only');
         return;
