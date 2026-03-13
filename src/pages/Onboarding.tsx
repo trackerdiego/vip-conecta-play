@@ -33,8 +33,8 @@ export default function Onboarding() {
         >
           <img
             src={logoParadaVip}
-            alt="Parada VIP"
-            className="h-24 w-24 rounded-2xl shadow-xl mb-4 glow-purple"
+            alt="Parada do Açaí VIP"
+            className="h-28 w-auto mb-4 drop-shadow-2xl"
           />
           <h1 className="font-heading text-3xl font-bold text-primary-foreground">
             Escolha seu perfil
