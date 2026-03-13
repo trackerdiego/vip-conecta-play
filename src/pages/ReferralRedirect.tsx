@@ -22,7 +22,7 @@ export default function ReferralRedirect() {
     }
     // Redirect to menu with referral UTM
     const url = code
-      ? `${MENU_URL}?utm_source=influencer&utm_medium=referral&utm_campaign=${code}`
+      ? `${MENU_URL}?utm_source=influencer&utm_medium=referral&campaign=${code}`
       : MENU_URL;
     window.location.href = url;
   }, [code]);
