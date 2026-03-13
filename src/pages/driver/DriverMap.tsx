@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { DriverStatusPill } from '@/components/shared/DriverStatusPill';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { BottomNav } from '@/components/shared/BottomNav';
+import { MapStyleSelector, useMapStyle } from '@/components/shared/MapStyleSelector';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliveries } from '@/hooks/useDeliveries';
@@ -35,6 +36,7 @@ export default function DriverMap() {
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
   const [showOffer, setShowOffer] = useState(false);
+  const { style, setStyle, tileUrl } = useMapStyle();
 
   const { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus } = useDeliveries();
   const { balance } = useWallet();
@@ -118,7 +120,7 @@ export default function DriverMap() {
         zoomControl={false}
         attributionControl={false}
       >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
         <MapCenterUpdater center={position} />
       </MapContainer>
@@ -134,6 +136,9 @@ export default function DriverMap() {
           {profile?.full_name?.charAt(0) ?? 'D'}
         </div>
       </div>
+
+      {/* Map Style Selector */}
+      <MapStyleSelector current={style} onChange={setStyle} />
 
       {/* Earnings mini card */}
       {isOnline && !activeDelivery && !showOffer && (
