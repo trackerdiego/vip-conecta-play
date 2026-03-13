@@ -6,32 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// In-memory JWT cache
-let cachedJwt: string | null = null;
-let jwtExpiresAt = 0;
-
-async function getMultipedidosJwt(): Promise<string> {
-  if (cachedJwt && Date.now() < jwtExpiresAt) return cachedJwt;
-
-  const token = Deno.env.get("MULTIPEDIDOS_INTEGRATION_TOKEN");
-  if (!token) throw new Error("MULTIPEDIDOS_INTEGRATION_TOKEN not set");
-
-  const res = await fetch("https://api.multipedidos.com.br/integration/auth/login", {
-    method: "POST",
-    headers: { "x-integration-token": token },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Multipedidos auth failed (${res.status}): ${text}`);
-  }
-
-  const data = await res.json();
-  cachedJwt = data.token;
-  jwtExpiresAt = Date.now() + 55 * 60 * 1000;
-  return cachedJwt!;
-}
-
 function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -39,19 +13,33 @@ function getSupabaseAdmin() {
   );
 }
 
-// Try to attribute an order to an influencer via referral code in order metadata
-async function tryAttributeReferral(order: any, externalId: string, supabaseAdmin: any) {
-  // Look for referral code in various places the order might carry it
-  const refCode =
+/**
+ * Extract referral code from the order payload.
+ * We check multiple possible locations since we don't know the exact structure yet.
+ */
+function extractReferralCode(order: any): string | null {
+  return (
     order.utm_campaign ||
     order.referral_code ||
     order.metadata?.referral_code ||
     order.metadata?.utm_campaign ||
     order.customer?.referral_code ||
-    null;
+    order.tracking?.utm_campaign ||
+    order.tracking?.referral_code ||
+    null
+  );
+}
 
-  if (!refCode) return null;
-
+/**
+ * Credit the referral commission to the influencer.
+ * Returns the sale ID if credited, null if influencer not found or duplicate.
+ */
+async function creditReferral(
+  refCode: string,
+  externalId: string,
+  orderTotal: number,
+  supabaseAdmin: any,
+): Promise<string | null> {
   // Find influencer by referral code
   const { data: influencer } = await supabaseAdmin
     .from("profiles")
@@ -59,14 +47,16 @@ async function tryAttributeReferral(order: any, externalId: string, supabaseAdmi
     .eq("referral_code", refCode)
     .maybeSingle();
 
-  if (!influencer) return null;
+  if (!influencer) {
+    console.warn(`Influencer not found for referral code: ${refCode}`);
+    return null;
+  }
 
-  // Credit commission using database function
   const { data: saleId, error } = await supabaseAdmin.rpc("credit_referral_commission", {
     _influencer_id: influencer.id,
     _referral_code: refCode,
     _external_order_id: externalId,
-    _order_total: order.total || 0,
+    _order_total: orderTotal,
     _commission_rate: 0.10,
   });
 
@@ -78,50 +68,10 @@ async function tryAttributeReferral(order: any, externalId: string, supabaseAdmi
   return saleId;
 }
 
-// Poll orders from Multipedidos API
-async function pollOrders() {
-  const jwt = await getMultipedidosJwt();
-  const restaurantId = Deno.env.get("MULTIPEDIDOS_RESTAURANT_ID");
-  if (!restaurantId) throw new Error("MULTIPEDIDOS_RESTAURANT_ID not set");
-
-  const now = new Date();
-  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-
-  const formatDate = (d: Date) => {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-  };
-
-  const res = await fetch(
-    `https://api.multipedidos.com.br/restaurant/${restaurantId}/order/query/paginate/0/100`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
-      },
-      body: JSON.stringify({
-        columnsTerms: {
-          createdAt: `${formatDate(twoHoursAgo)} -> ${formatDate(now)}`,
-        },
-        sortSettings: { createdAt: "desc" },
-      }),
-    },
-  );
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Multipedidos poll failed (${res.status}): ${text}`);
-  }
-
-  const orders = await res.json();
-  return Array.isArray(orders) ? orders : [];
-}
-
-// Process a single order into a delivery record
-async function processOrder(order: any, supabaseAdmin: any) {
-  const externalId = String(order.id);
-
+/**
+ * Create a delivery record for the driver system.
+ */
+async function createDelivery(order: any, externalId: string, supabaseAdmin: any) {
   // Check if already exists
   const { data: existing } = await supabaseAdmin
     .from("deliveries")
@@ -137,11 +87,9 @@ async function processOrder(order: any, supabaseAdmin: any) {
       ? `Mesa: ${order.table || "N/A"}`
       : "Endereço não informado";
 
-  const pickupAddress = "Parada do Açaí VIP";
-
   const { error } = await supabaseAdmin.from("deliveries").insert({
     external_order_id: externalId,
-    pickup_address: pickupAddress,
+    pickup_address: "Parada do Açaí VIP",
     delivery_address: deliveryAddress,
     fare: order.total || 0,
     status: "pending",
@@ -154,22 +102,52 @@ async function processOrder(order: any, supabaseAdmin: any) {
   });
 
   if (error) throw error;
-
-  // Try to attribute to an influencer
-  const saleId = await tryAttributeReferral(order, externalId, supabaseAdmin);
-
-  return { created: true, id: externalId, referral_credited: !!saleId };
+  return { created: true, id: externalId };
 }
 
-// Webhook handler
+/**
+ * WEBHOOK HANDLER
+ * The Multipedidos webhook ONLY fires for orders made via referral/tracked links.
+ * So every order that arrives here is a referral sale.
+ */
 async function handleWebhook(body: any) {
+  // Log full payload for debugging (crucial during testing)
+  console.log("=== WEBHOOK PAYLOAD ===");
+  console.log(JSON.stringify(body, null, 2));
+  console.log("=== END PAYLOAD ===");
+
   const supabaseAdmin = getSupabaseAdmin();
   const orders = Array.isArray(body) ? body : [body];
   const results = [];
 
   for (const order of orders) {
-    const result = await processOrder(order, supabaseAdmin);
-    results.push(result);
+    const externalId = String(order.id);
+    const orderTotal = order.total || 0;
+    const refCode = extractReferralCode(order);
+
+    console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}`);
+
+    // 1. Create delivery record for drivers
+    const deliveryResult = await createDelivery(order, externalId, supabaseAdmin);
+
+    // 2. Credit referral commission
+    let referralResult = null;
+    if (refCode) {
+      referralResult = await creditReferral(refCode, externalId, orderTotal, supabaseAdmin);
+      console.log(`Referral credit result for ${refCode}: ${referralResult}`);
+    } else {
+      console.warn(
+        `Order ${externalId} arrived via webhook but NO referral code found in payload. ` +
+        `Check the payload structure above to identify where Multipedidos sends the tracking code.`
+      );
+    }
+
+    results.push({
+      id: externalId,
+      delivery: deliveryResult,
+      referral_credited: !!referralResult,
+      ref_code: refCode,
+    });
   }
 
   return results;
@@ -184,6 +162,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "webhook";
 
+    // Default: webhook receives referral orders from Multipedidos
     if (action === "webhook" && req.method === "POST") {
       const body = await req.json();
       const results = await handleWebhook(body);
@@ -192,49 +171,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "poll") {
-      const authHeader = req.headers.get("Authorization");
-      if (!authHeader?.startsWith("Bearer ")) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const supabaseAdmin = getSupabaseAdmin();
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } },
-      );
-
-      const { data: claims, error: claimsError } = await supabaseClient.auth.getClaims(
-        authHeader.replace("Bearer ", ""),
-      );
-      if (claimsError || !claims?.claims) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const orders = await pollOrders();
-      const results = [];
-      for (const order of orders) {
-        const result = await processOrder(order, supabaseAdmin);
-        results.push(result);
-      }
-
-      return new Response(
-        JSON.stringify({ ok: true, total: orders.length, results }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
+    // Test auth endpoint
     if (action === "test_auth") {
-      const jwt = await getMultipedidosJwt();
+      // Quick test to verify Multipedidos token works
+      const token = Deno.env.get("MULTIPEDIDOS_INTEGRATION_TOKEN");
+      if (!token) {
+        return new Response(JSON.stringify({ error: "MULTIPEDIDOS_INTEGRATION_TOKEN not set" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(
-        JSON.stringify({ ok: true, jwt_preview: jwt.substring(0, 20) + "..." }),
+        JSON.stringify({ ok: true, token_preview: token.substring(0, 10) + "..." }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }

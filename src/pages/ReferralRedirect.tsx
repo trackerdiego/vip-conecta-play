@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 
-const MENU_URL = 'https://pedir.delivery/paradadoacai';
+const MENU_URL = 'https://pedir.delivery/app/apresentacaopizzas/menu';
 const COOKIE_NAME = 'ref_code';
 const COOKIE_DAYS = 30;
 
