@@ -44,7 +44,7 @@ const TEMPLATES = [
 export default function StoryCreator() {
   const profile = useAuthStore((s) => s.profile);
   const referralCode = profile?.referral_code ?? '';
-  const shareLink = `https://vip-conecta-play.lovable.app/r/${referralCode}`;
+  const shareLink = `https://app.paradadoacai.online/r/${referralCode}`;
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
   const canvasRef = useRef<HTMLDivElement>(null);
 
