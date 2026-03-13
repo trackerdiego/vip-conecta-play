@@ -14,7 +14,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useMissions } from '@/hooks/useMissions';
 import { useReferralStats } from '@/hooks/useReferralStats';
 import { getLevelInfo } from '@/lib/levels';
-import { mockPrizes } from '@/data/mockData';
+import { usePrizes } from '@/hooks/usePrizes';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
