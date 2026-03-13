@@ -32,7 +32,7 @@ export default function InfluencerDashboard() {
   const { levelName, xpMax } = getLevelInfo(level);
   const name = profile?.full_name ?? 'Usuário';
   const referralCode = profile?.referral_code ?? '';
-  const nextPrize = mockPrizes[0];
+  const nextPrize = prizes.length > 0 ? prizes[0] : null;
 
   const shareLink = `https://app.paradadoacai.online/r/${referralCode}`;
 

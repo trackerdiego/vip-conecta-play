@@ -101,6 +101,13 @@ const App = () => (
             <Route path="/driver/profile" element={<DriverProfile />} />
           </Route>
 
+          {/* Admin — Protected */}
+          <Route element={<ProtectedRoute requiredRole="admin" />}>
+            <Route path="/admin" element={<AdminOverview />} />
+            <Route path="/admin/missions" element={<AdminMissions />} />
+            <Route path="/admin/prizes" element={<AdminPrizes />} />
+          </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
