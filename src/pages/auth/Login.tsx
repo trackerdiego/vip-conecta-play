@@ -7,6 +7,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 export default function Login() {
   const navigate = useNavigate();
