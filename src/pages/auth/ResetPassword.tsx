@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -39,8 +40,10 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-6">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-accent/60 to-background px-6">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
+      <div className="relative z-10 w-full max-w-sm">
+        <img src={logoParadaVip} alt="Parada do Açaí VIP" className="h-20 w-auto mx-auto mb-6 drop-shadow-lg" />
         <h1 className="font-heading text-2xl font-bold text-center mb-8">Nova Senha</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

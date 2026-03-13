@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Download, Share, Plus, CheckCircle2, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 type Platform = 'android' | 'ios' | 'desktop';
 
@@ -50,7 +51,7 @@ export default function InstallPWA() {
 
   if (isInstalled) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-b from-background via-accent/60 to-background flex items-center justify-center p-6">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -65,16 +66,15 @@ export default function InstallPWA() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-b from-background via-accent/60 to-background flex flex-col items-center justify-center p-6">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="max-w-sm w-full space-y-8 text-center"
+        className="relative z-10 max-w-sm w-full space-y-8 text-center"
       >
         <div className="space-y-2">
-          <div className="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-lg mb-4">
-            <img src="/pwa-icon-512.png" alt="Parada VIP" className="w-full h-full object-cover" />
-          </div>
+          <img src={logoParadaVip} alt="Parada do Açaí VIP" className="h-20 w-auto mx-auto mb-4 drop-shadow-lg" />
           <h1 className="text-2xl font-bold text-foreground">Instalar Parada VIP</h1>
           <p className="text-muted-foreground text-sm">
             Instale o app no seu celular para uma experiência completa, sem precisar da App Store.
