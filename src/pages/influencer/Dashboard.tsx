@@ -29,7 +29,7 @@ export default function InfluencerDashboard() {
 
   const level = profile?.level ?? 1;
   const xp = profile?.xp_points ?? 0;
-  const { levelName, xpMax } = getLevelInfo(level);
+  const { levelName, xpMax, commissionRate } = getLevelInfo(level);
   const name = profile?.full_name ?? 'Usuário';
   const referralCode = profile?.referral_code ?? '';
   const nextPrize = prizes.length > 0 ? prizes[0] : null;
