@@ -194,6 +194,31 @@ export default function StoryCreator() {
           <p className="text-white/50 text-xs mt-8">Parada do Açaí VIP</p>
         </motion.div>
 
+        {/* Copiar Link dedicado */}
+        <div className="bg-muted/10 border border-primary-foreground/10 rounded-2xl p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground mb-1">Seu link de indicação</p>
+              <p className="text-sm font-mono text-primary-foreground truncate">{shareLink}</p>
+            </div>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(shareLink);
+                toast.success('Link copiado! 📋');
+              }}
+              size="sm"
+              className="shrink-0 bg-gradient-to-r from-brand-purple to-brand-purple-light text-primary-foreground font-heading font-bold rounded-xl"
+            >
+              <Copy className="h-4 w-4 mr-1" />
+              Copiar
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+            <Link className="h-3 w-3" />
+            Cole na bio ou use o sticker de link nos stories
+          </p>
+        </div>
+
         {/* Actions */}
         <div className="grid grid-cols-2 gap-3">
           <Button
