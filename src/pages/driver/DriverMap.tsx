@@ -137,6 +137,9 @@ export default function DriverMap() {
         </div>
       </div>
 
+      {/* Map Style Selector */}
+      <MapStyleSelector current={style} onChange={setStyle} />
+
       {/* Earnings mini card */}
       {isOnline && !activeDelivery && !showOffer && (
         <div className="absolute bottom-24 left-4 z-[1000]">
