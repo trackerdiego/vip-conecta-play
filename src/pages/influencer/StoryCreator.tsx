@@ -173,15 +173,23 @@ export default function StoryCreator() {
           </h2>
           <p className="text-white/70 text-sm mb-8">{selectedTemplate.subtext}</p>
 
-          {/* Link box */}
-          <div className="bg-black/30 rounded-2xl px-4 py-3 backdrop-blur-sm">
+          {/* Link box - clicável para copiar */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(shareLink);
+              toast.success('Link copiado! 📋');
+            }}
+            className="bg-black/30 rounded-2xl px-4 py-3 backdrop-blur-sm hover:bg-black/50 transition-colors cursor-pointer group"
+          >
             <div className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-white/80" />
               <span className="text-white text-xs font-mono">
                 {shareLink.replace('https://', '')}
               </span>
+              <Copy className="h-4 w-4 text-white/50 group-hover:text-white/80 transition-colors" />
             </div>
-          </div>
+          </button>
 
           <p className="text-white/50 text-xs mt-8">Parada do Açaí VIP</p>
         </motion.div>
