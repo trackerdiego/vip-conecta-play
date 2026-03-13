@@ -72,7 +72,7 @@ export default function Onboarding() {
           >
             <div className="rounded-2xl overflow-hidden shadow-lg ring-1 ring-border bg-card">
               <img
-                src={imgDriver}
+                src={imgInfluencer}
                 alt="Entregador"
                 className="w-full aspect-square object-cover"
               />
