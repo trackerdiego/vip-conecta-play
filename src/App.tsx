@@ -6,7 +6,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
-import { useCapgoUpdater } from '@/hooks/useCapgoUpdater';
 
 // Pages
 import SplashScreen from '@/pages/SplashScreen';
@@ -25,14 +24,10 @@ import DriverMap from '@/pages/driver/DriverMap';
 import DriverHistory from '@/pages/driver/History';
 import DriverEarnings from '@/pages/driver/Earnings';
 import DriverProfile from '@/pages/driver/Profile';
+import InstallPWA from '@/pages/InstallPWA';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
-
-function AppInitializer() {
-  useCapgoUpdater();
-  return null;
-}
 
 function AuthListener() {
   const { setUser, setLoading, fetchProfile } = useAuthStore();
@@ -67,11 +62,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster position="bottom-center" />
       <BrowserRouter>
-        <AppInitializer />
         <AuthListener />
         <Routes>
           <Route path="/" element={<SplashScreen />} />
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/install" element={<InstallPWA />} />
 
           {/* Auth */}
           <Route path="/auth/login" element={<Login />} />
