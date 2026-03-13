@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { DriverStatusPill } from '@/components/shared/DriverStatusPill';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { BottomNav } from '@/components/shared/BottomNav';
+import { MapStyleSelector, useMapStyle } from '@/components/shared/MapStyleSelector';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliveries } from '@/hooks/useDeliveries';
