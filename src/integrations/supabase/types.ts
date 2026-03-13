@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      commission_rates: {
+        Row: {
+          level: number
+          rate: number
+          updated_at: string
+        }
+        Insert: {
+          level: number
+          rate: number
+          updated_at?: string
+        }
+        Update: {
+          level?: number
+          rate?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deliveries: {
         Row: {
           accepted_at: string | null

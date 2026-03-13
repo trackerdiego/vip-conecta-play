@@ -29,7 +29,7 @@ export default function InfluencerDashboard() {
 
   const level = profile?.level ?? 1;
   const xp = profile?.xp_points ?? 0;
-  const { levelName, xpMax } = getLevelInfo(level);
+  const { levelName, xpMax, commissionRate } = getLevelInfo(level);
   const name = profile?.full_name ?? 'Usuário';
   const referralCode = profile?.referral_code ?? '';
   const nextPrize = prizes.length > 0 ? prizes[0] : null;
@@ -100,7 +100,10 @@ export default function InfluencerDashboard() {
         >
           <ParticlesBackground />
           <div className="relative z-10">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Saldo Disponível</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Saldo Disponível</p>
+              <span className="text-xs bg-primary-foreground/10 px-2 py-0.5 rounded-full text-primary-foreground/80">Comissão: {commissionRate}%</span>
+            </div>
             <CurrencyDisplay value={balance} size="xl" glow className="text-primary-foreground block mb-4" />
             <div className="flex gap-2">
               <Button

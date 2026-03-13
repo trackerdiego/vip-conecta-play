@@ -13,10 +13,6 @@ function getSupabaseAdmin() {
   );
 }
 
-/**
- * Extract referral code from the order payload.
- * We check multiple possible locations since we don't know the exact structure yet.
- */
 function extractReferralCode(order: any): string | null {
   return (
     order.external_source ||
@@ -33,19 +29,29 @@ function extractReferralCode(order: any): string | null {
 }
 
 /**
- * Credit the referral commission to the influencer.
- * Returns the sale ID if credited, null if influencer not found or duplicate.
+ * Get the commission rate for a given level from the commission_rates table.
+ * Falls back to 0.01 (1%) if not found.
  */
+async function getCommissionRate(level: number, supabaseAdmin: any): Promise<number> {
+  const { data } = await supabaseAdmin
+    .from("commission_rates")
+    .select("rate")
+    .eq("level", level)
+    .maybeSingle();
+
+  return data?.rate ?? 0.01;
+}
+
 async function creditReferral(
   refCode: string,
   externalId: string,
   orderTotal: number,
   supabaseAdmin: any,
 ): Promise<string | null> {
-  // Find influencer by referral code
+  // Find influencer by referral code, including their level
   const { data: influencer } = await supabaseAdmin
     .from("profiles")
-    .select("id")
+    .select("id, level")
     .eq("referral_code", refCode)
     .maybeSingle();
 
@@ -54,12 +60,17 @@ async function creditReferral(
     return null;
   }
 
+  const influencerLevel = influencer.level ?? 1;
+  const commissionRate = await getCommissionRate(influencerLevel, supabaseAdmin);
+
+  console.log(`Influencer ${influencer.id} level=${influencerLevel} commission_rate=${commissionRate}`);
+
   const { data: saleId, error } = await supabaseAdmin.rpc("credit_referral_commission", {
     _influencer_id: influencer.id,
     _referral_code: refCode,
     _external_order_id: externalId,
     _order_total: orderTotal,
-    _commission_rate: 0.10,
+    _commission_rate: commissionRate,
   });
 
   if (error) {
@@ -70,11 +81,7 @@ async function creditReferral(
   return saleId;
 }
 
-/**
- * Create a delivery record for the driver system.
- */
 async function createDelivery(order: any, externalId: string, supabaseAdmin: any) {
-  // Check if already exists
   const { data: existing } = await supabaseAdmin
     .from("deliveries")
     .select("id")
@@ -107,13 +114,7 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   return { created: true, id: externalId };
 }
 
-/**
- * WEBHOOK HANDLER
- * The Multipedidos webhook ONLY fires for orders made via referral/tracked links.
- * So every order that arrives here is a referral sale.
- */
 async function handleWebhook(body: any) {
-  // Log full payload for debugging (crucial during testing)
   console.log("=== WEBHOOK PAYLOAD ===");
   console.log(JSON.stringify(body, null, 2));
   console.log("=== END PAYLOAD ===");
@@ -129,18 +130,15 @@ async function handleWebhook(body: any) {
 
     console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}`);
 
-    // 1. Create delivery record for drivers
     const deliveryResult = await createDelivery(order, externalId, supabaseAdmin);
 
-    // 2. Credit referral commission
     let referralResult = null;
     if (refCode) {
       referralResult = await creditReferral(refCode, externalId, orderTotal, supabaseAdmin);
       console.log(`Referral credit result for ${refCode}: ${referralResult}`);
     } else {
       console.warn(
-        `Order ${externalId} arrived via webhook but NO referral code found in payload. ` +
-        `Check the payload structure above to identify where Multipedidos sends the tracking code.`
+        `Order ${externalId} arrived via webhook but NO referral code found in payload.`
       );
     }
 
@@ -164,7 +162,6 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "webhook";
 
-    // Default: webhook receives referral orders from Multipedidos
     if (action === "webhook" && req.method === "POST") {
       const body = await req.json();
       const results = await handleWebhook(body);
@@ -173,9 +170,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Test auth endpoint
     if (action === "test_auth") {
-      // Quick test to verify Multipedidos token works
       const token = Deno.env.get("MULTIPEDIDOS_INTEGRATION_TOKEN");
       if (!token) {
         return new Response(JSON.stringify({ error: "MULTIPEDIDOS_INTEGRATION_TOKEN not set" }), {
