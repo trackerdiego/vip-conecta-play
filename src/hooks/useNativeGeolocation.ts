@@ -16,6 +16,7 @@ export function useNativeGeolocation(enabled: boolean) {
   const startWatching = useCallback(async () => {
     if (isNative) {
       try {
+        // @ts-ignore - installed locally after export
         const { Geolocation } = await import('@capacitor/geolocation');
         const perm = await Geolocation.requestPermissions();
         if (perm.location !== 'granted') {
