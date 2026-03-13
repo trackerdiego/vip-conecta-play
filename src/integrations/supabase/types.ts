@@ -159,6 +159,39 @@ export type Database = {
         }
         Relationships: []
       }
+      prizes: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string
+          id: string
+          is_active: boolean
+          name: string
+          target: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          target?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          target?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -358,6 +391,45 @@ export type Database = {
           },
           {
             foreignKeyName: "user_missions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_prizes: {
+        Row: {
+          claimed_at: string | null
+          id: string
+          prize_id: string
+          progress: number
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          id?: string
+          prize_id: string
+          progress?: number
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string | null
+          id?: string
+          prize_id?: string
+          progress?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_prizes_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "prizes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_prizes_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"

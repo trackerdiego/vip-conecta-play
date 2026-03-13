@@ -27,6 +27,9 @@ import DriverMap from '@/pages/driver/DriverMap';
 import DriverHistory from '@/pages/driver/History';
 import DriverEarnings from '@/pages/driver/Earnings';
 import DriverProfile from '@/pages/driver/Profile';
+import AdminOverview from '@/pages/admin/Overview';
+import AdminMissions from '@/pages/admin/Missions';
+import AdminPrizes from '@/pages/admin/Prizes';
 import InstallPWA from '@/pages/InstallPWA';
 import NotFound from '@/pages/NotFound';
 
@@ -96,6 +99,13 @@ const App = () => (
             <Route path="/driver/history" element={<DriverHistory />} />
             <Route path="/driver/earnings" element={<DriverEarnings />} />
             <Route path="/driver/profile" element={<DriverProfile />} />
+          </Route>
+
+          {/* Admin — Protected */}
+          <Route element={<ProtectedRoute requiredRole="admin" />}>
+            <Route path="/admin" element={<AdminOverview />} />
+            <Route path="/admin/missions" element={<AdminMissions />} />
+            <Route path="/admin/prizes" element={<AdminPrizes />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
