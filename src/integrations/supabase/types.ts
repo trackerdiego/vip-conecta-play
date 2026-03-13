@@ -206,6 +206,50 @@ export type Database = {
           },
         ]
       }
+      referral_sales: {
+        Row: {
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          credited: boolean
+          external_order_id: string
+          id: string
+          influencer_id: string
+          order_total: number
+          referral_code: string
+        }
+        Insert: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          credited?: boolean
+          external_order_id: string
+          id?: string
+          influencer_id: string
+          order_total?: number
+          referral_code: string
+        }
+        Update: {
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          credited?: boolean
+          external_order_id?: string
+          id?: string
+          influencer_id?: string
+          order_total?: number
+          referral_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_sales_influencer_id_fkey"
+            columns: ["influencer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traccar_devices: {
         Row: {
           created_at: string | null
@@ -417,6 +461,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_referral_commission: {
+        Args: {
+          _commission_rate?: number
+          _external_order_id: string
+          _influencer_id: string
+          _order_total: number
+          _referral_code: string
+        }
+        Returns: string
+      }
       generate_referral_code: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
