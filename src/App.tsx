@@ -30,6 +30,7 @@ import DriverProfile from '@/pages/driver/Profile';
 import AdminOverview from '@/pages/admin/Overview';
 import AdminMissions from '@/pages/admin/Missions';
 import AdminPrizes from '@/pages/admin/Prizes';
+import AdminCommissions from '@/pages/admin/Commissions';
 import InstallPWA from '@/pages/InstallPWA';
 import NotFound from '@/pages/NotFound';
 
