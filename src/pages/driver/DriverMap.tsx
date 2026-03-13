@@ -36,6 +36,7 @@ export default function DriverMap() {
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
   const [showOffer, setShowOffer] = useState(false);
+  const { style, setStyle, tileUrl } = useMapStyle();
 
   const { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus } = useDeliveries();
   const { balance } = useWallet();
