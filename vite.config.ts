@@ -19,4 +19,13 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react-leaflet", "@react-leaflet/core"],
   },
+  build: {
+    rollupOptions: {
+      external: [
+        '@capacitor/geolocation',
+        '@capacitor/push-notifications',
+        '@capacitor-community/background-geolocation',
+      ],
+    },
+  },
 }));
