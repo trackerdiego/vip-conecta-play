@@ -27,6 +27,9 @@ import DriverMap from '@/pages/driver/DriverMap';
 import DriverHistory from '@/pages/driver/History';
 import DriverEarnings from '@/pages/driver/Earnings';
 import DriverProfile from '@/pages/driver/Profile';
+import AdminOverview from '@/pages/admin/Overview';
+import AdminMissions from '@/pages/admin/Missions';
+import AdminPrizes from '@/pages/admin/Prizes';
 import InstallPWA from '@/pages/InstallPWA';
 import NotFound from '@/pages/NotFound';
 
