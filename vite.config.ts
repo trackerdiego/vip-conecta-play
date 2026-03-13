@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => ({
         '@capacitor/geolocation',
         '@capacitor/push-notifications',
         '@capacitor-community/background-geolocation',
+        '@capgo/capacitor-updater',
       ],
     },
   },
