@@ -51,7 +51,7 @@ export default function InstallPWA() {
 
   if (isInstalled) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="min-h-screen bg-gradient-to-b from-background via-accent/60 to-background flex items-center justify-center p-6">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
