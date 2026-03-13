@@ -19,6 +19,7 @@ function getSupabaseAdmin() {
  */
 function extractReferralCode(order: any): string | null {
   return (
+    order.external_source ||
     order.campaign ||
     order.utm_campaign ||
     order.referral_code ||
