@@ -203,6 +203,38 @@ export type Database = {
           },
         ]
       }
+      traccar_devices: {
+        Row: {
+          created_at: string | null
+          driver_id: string
+          id: string
+          traccar_device_id: number
+          unique_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          driver_id: string
+          id?: string
+          traccar_device_id: number
+          unique_id: string
+        }
+        Update: {
+          created_at?: string | null
+          driver_id?: string
+          id?: string
+          traccar_device_id?: number
+          unique_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traccar_devices_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number
