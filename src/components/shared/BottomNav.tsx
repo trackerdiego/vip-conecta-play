@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Users, Trophy, User, Map, ClipboardList, DollarSign } from 'lucide-react';
+import { Home, Users, Trophy, User, Map, ClipboardList, DollarSign, Palette, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -10,8 +10,9 @@ interface NavItem {
 
 const influencerNav: NavItem[] = [
   { path: '/influencer/dashboard', label: 'Início', icon: Home },
-  { path: '/influencer/referrals', label: 'Indicações', icon: Users },
-  { path: '/influencer/rewards', label: 'Prêmios', icon: Trophy },
+  { path: '/influencer/story-creator', label: 'Criar', icon: Palette },
+  { path: '/influencer/leaderboard', label: 'Ranking', icon: BarChart3 },
+  { path: '/influencer/referrals', label: 'Vendas', icon: Users },
   { path: '/influencer/profile', label: 'Perfil', icon: User },
 ];
 

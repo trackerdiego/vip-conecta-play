@@ -28,7 +28,6 @@ async function getMultipedidosJwt(): Promise<string> {
 
   const data = await res.json();
   cachedJwt = data.token;
-  // Refresh 5 min before expiry (JWT lasts 60 min)
   jwtExpiresAt = Date.now() + 55 * 60 * 1000;
   return cachedJwt!;
 }
@@ -40,13 +39,51 @@ function getSupabaseAdmin() {
   );
 }
 
+// Try to attribute an order to an influencer via referral code in order metadata
+async function tryAttributeReferral(order: any, externalId: string, supabaseAdmin: any) {
+  // Look for referral code in various places the order might carry it
+  const refCode =
+    order.utm_campaign ||
+    order.referral_code ||
+    order.metadata?.referral_code ||
+    order.metadata?.utm_campaign ||
+    order.customer?.referral_code ||
+    null;
+
+  if (!refCode) return null;
+
+  // Find influencer by referral code
+  const { data: influencer } = await supabaseAdmin
+    .from("profiles")
+    .select("id")
+    .eq("referral_code", refCode)
+    .maybeSingle();
+
+  if (!influencer) return null;
+
+  // Credit commission using database function
+  const { data: saleId, error } = await supabaseAdmin.rpc("credit_referral_commission", {
+    _influencer_id: influencer.id,
+    _referral_code: refCode,
+    _external_order_id: externalId,
+    _order_total: order.total || 0,
+    _commission_rate: 0.10,
+  });
+
+  if (error) {
+    console.error("Failed to credit referral:", error);
+    return null;
+  }
+
+  return saleId;
+}
+
 // Poll orders from Multipedidos API
 async function pollOrders() {
   const jwt = await getMultipedidosJwt();
   const restaurantId = Deno.env.get("MULTIPEDIDOS_RESTAURANT_ID");
   if (!restaurantId) throw new Error("MULTIPEDIDOS_RESTAURANT_ID not set");
 
-  // Query orders from last 2 hours
   const now = new Date();
   const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
 
@@ -94,14 +131,13 @@ async function processOrder(order: any, supabaseAdmin: any) {
 
   if (existing) return { skipped: true, id: externalId };
 
-  // Build delivery address from order data
   const deliveryAddress = order.address
     ? `${order.address.street || ""}, ${order.address.number || ""} - ${order.address.neighborhood || ""}, ${order.address.city || ""}`
     : order.delivery_type === "table"
       ? `Mesa: ${order.table || "N/A"}`
       : "Endereço não informado";
 
-  const pickupAddress = "Parada do Açaí VIP"; // Default restaurant address
+  const pickupAddress = "Parada do Açaí VIP";
 
   const { error } = await supabaseAdmin.from("deliveries").insert({
     external_order_id: externalId,
@@ -118,10 +154,14 @@ async function processOrder(order: any, supabaseAdmin: any) {
   });
 
   if (error) throw error;
-  return { created: true, id: externalId };
+
+  // Try to attribute to an influencer
+  const saleId = await tryAttributeReferral(order, externalId, supabaseAdmin);
+
+  return { created: true, id: externalId, referral_credited: !!saleId };
 }
 
-// Webhook handler — receives POST from Multipedidos
+// Webhook handler
 async function handleWebhook(body: any) {
   const supabaseAdmin = getSupabaseAdmin();
   const orders = Array.isArray(body) ? body : [body];
@@ -144,7 +184,6 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "webhook";
 
-    // Webhook: public POST from Multipedidos (no auth needed)
     if (action === "webhook" && req.method === "POST") {
       const body = await req.json();
       const results = await handleWebhook(body);
@@ -153,9 +192,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Poll: authenticated call from our app
     if (action === "poll") {
-      // Validate internal auth
       const authHeader = req.headers.get("Authorization");
       if (!authHeader?.startsWith("Bearer ")) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -194,7 +231,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Auth test: check if token works
     if (action === "test_auth") {
       const jwt = await getMultipedidosJwt();
       return new Response(

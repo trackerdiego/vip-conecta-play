@@ -14,12 +14,15 @@ import Login from '@/pages/auth/Login';
 import Register from '@/pages/auth/Register';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
+import ReferralRedirect from '@/pages/ReferralRedirect';
 import InfluencerDashboard from '@/pages/influencer/Dashboard';
 import InfluencerMissions from '@/pages/influencer/Missions';
 import InfluencerRewards from '@/pages/influencer/Rewards';
 import InfluencerReferrals from '@/pages/influencer/Referrals';
 import InfluencerWithdraw from '@/pages/influencer/Withdraw';
 import InfluencerProfile from '@/pages/influencer/Profile';
+import InfluencerStoryCreator from '@/pages/influencer/StoryCreator';
+import InfluencerLeaderboard from '@/pages/influencer/Leaderboard';
 import DriverMap from '@/pages/driver/DriverMap';
 import DriverHistory from '@/pages/driver/History';
 import DriverEarnings from '@/pages/driver/Earnings';
@@ -67,6 +70,7 @@ const App = () => (
           <Route path="/" element={<SplashScreen />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/install" element={<InstallPWA />} />
+          <Route path="/r/:code" element={<ReferralRedirect />} />
 
           {/* Auth */}
           <Route path="/auth/login" element={<Login />} />
@@ -82,6 +86,8 @@ const App = () => (
             <Route path="/influencer/referrals" element={<InfluencerReferrals />} />
             <Route path="/influencer/withdraw" element={<InfluencerWithdraw />} />
             <Route path="/influencer/profile" element={<InfluencerProfile />} />
+            <Route path="/influencer/story-creator" element={<InfluencerStoryCreator />} />
+            <Route path="/influencer/leaderboard" element={<InfluencerLeaderboard />} />
           </Route>
 
           {/* Driver — Protected */}
