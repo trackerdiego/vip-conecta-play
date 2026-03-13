@@ -10,7 +10,10 @@ async function traccarFetch(path: string, method = 'GET', body?: unknown) {
   const TRACCAR_USER = Deno.env.get('TRACCAR_USER')!
   const TRACCAR_PASSWORD = Deno.env.get('TRACCAR_PASSWORD')!
 
-  const url = `${TRACCAR_URL.replace(/\/$/, '')}/api${path}`
+  // TRACCAR_URL should be the base (e.g. https://host:port) — we append /api here
+  // If TRACCAR_URL already ends with /api, strip it to avoid duplication
+  const base = TRACCAR_URL.replace(/\/+$/, '').replace(/\/api$/, '')
+  const url = `${base}/api${path}`
   const headers: Record<string, string> = {
     'Authorization': 'Basic ' + btoa(`${TRACCAR_USER}:${TRACCAR_PASSWORD}`),
     'Content-Type': 'application/json',
