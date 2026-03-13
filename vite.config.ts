@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react-leaflet", "@react-leaflet/core"],
   },
   build: {
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       external: [
         '@capacitor/geolocation',
