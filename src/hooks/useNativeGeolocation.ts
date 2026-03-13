@@ -66,6 +66,7 @@ export function useNativeGeolocation(enabled: boolean) {
     if (watchIdRef.current === null) return;
     if (isNative) {
       try {
+        // @ts-ignore - installed locally after export
         const { Geolocation } = await import('@capacitor/geolocation');
         await Geolocation.clearWatch({ id: watchIdRef.current as string });
       } catch {

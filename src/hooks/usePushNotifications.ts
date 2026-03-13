@@ -44,6 +44,7 @@ export function usePushNotifications() {
     setup();
 
     return () => {
+      // @ts-ignore - installed locally after export
       import('@capacitor/push-notifications')
         .then(({ PushNotifications }) => PushNotifications.removeAllListeners())
         .catch(() => {});
