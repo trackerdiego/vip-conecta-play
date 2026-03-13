@@ -1,0 +1,1 @@
+ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS multipedidos_order_data jsonb DEFAULT NULL;
