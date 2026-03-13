@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import logoParadaVip from '@/assets/logo-parada-vip.png';
 
 export default function Register() {
   const navigate = useNavigate();
