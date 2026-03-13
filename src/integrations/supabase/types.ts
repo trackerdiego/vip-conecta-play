@@ -27,6 +27,7 @@ export type Database = {
           external_order_id: string | null
           fare: number
           id: string
+          multipedidos_order_data: Json | null
           offered_at: string | null
           pickup_address: string
           pickup_lat: number | null
@@ -45,6 +46,7 @@ export type Database = {
           external_order_id?: string | null
           fare: number
           id?: string
+          multipedidos_order_data?: Json | null
           offered_at?: string | null
           pickup_address: string
           pickup_lat?: number | null
@@ -63,6 +65,7 @@ export type Database = {
           external_order_id?: string | null
           fare?: number
           id?: string
+          multipedidos_order_data?: Json | null
           offered_at?: string | null
           pickup_address?: string
           pickup_lat?: number | null

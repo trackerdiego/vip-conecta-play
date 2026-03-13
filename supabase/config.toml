@@ -1,1 +1,4 @@
 project_id = "acupgttxcggijjdvpzoj"
+
+[functions.multipedidos-sync]
+verify_jwt = false
