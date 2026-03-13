@@ -26,13 +26,16 @@ export function useBackgroundGeolocation({ enabled, onPosition }: BackgroundGeoC
 
     try {
       // Dynamic import so it doesn't break if plugin isn't installed
-      const { BackgroundGeolocation } = await import('@anthropic-ai/sdk').catch(() => {
-        // Plugin not installed — that's OK, fallback handled elsewhere
-        return { BackgroundGeolocation: null };
-      });
+      // Dynamic import so it doesn't break if plugin isn't installed
+      let bgGeoModule: any = null;
+      try {
+        bgGeoModule = await import('@capacitor-community/background-geolocation');
+      } catch {
+        console.info('[BackgroundGeo] Plugin not installed, skipping');
+        return;
+      }
 
-      // Try loading the actual community plugin
-      const bgGeo = (globalThis as any).__capacitor_background_geolocation;
+      const bgGeo = bgGeoModule?.BackgroundGeolocationPlugin ?? bgGeoModule?.default;
       if (!bgGeo) {
         console.info('[BackgroundGeo] Plugin not found, using foreground geolocation only');
         return;
