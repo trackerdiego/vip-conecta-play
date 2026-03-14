@@ -1,120 +1,83 @@
 import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Download, Share2, QrCode, Copy, Link } from 'lucide-react';
+import { Download, Share2, Copy, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/shared/BottomNav';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
 
-const TEMPLATES = [
-  {
-    id: 'acai-promo',
-    name: 'Açaí do Dia',
-    gradient: 'from-purple-900 via-purple-700 to-pink-600',
-    emoji: '🍇',
-    headline: 'Peça seu Açaí com desconto!',
-    subtext: 'Use meu link e ganhe vantagens exclusivas',
-  },
-  {
-    id: 'combo-deal',
-    name: 'Combo Especial',
-    gradient: 'from-orange-600 via-red-600 to-purple-800',
-    emoji: '🔥',
-    headline: 'Combo imperdível hoje!',
-    subtext: 'Açaí + Complementos por um preço especial',
-  },
-  {
-    id: 'fresh-vibes',
-    name: 'Vibes Frescas',
-    gradient: 'from-green-600 via-teal-500 to-cyan-500',
-    emoji: '🌿',
-    headline: 'Frescor na sua porta!',
-    subtext: 'Peça agora pelo meu link exclusivo',
-  },
-  {
-    id: 'night-mode',
-    name: 'Noturno',
-    gradient: 'from-gray-900 via-purple-900 to-violet-800',
-    emoji: '🌙',
-    headline: 'Delivery noturno aberto!',
-    subtext: 'Seu açaí favorito, a qualquer hora',
-  },
+import story1 from '@/assets/stories/story-1.png';
+import story2 from '@/assets/stories/story-2.png';
+import story3 from '@/assets/stories/story-3.png';
+import story4 from '@/assets/stories/story-4.png';
+
+interface StoryTemplate {
+  id: string;
+  name: string;
+  image: string;
+  /** Y position (0-1 ratio) where the link text should be rendered on the canvas */
+  linkY: number;
+}
+
+const TEMPLATES: StoryTemplate[] = [
+  { id: 'delivery', name: 'Delivery Liberado', image: story1, linkY: 0.88 },
+  { id: 'energia', name: 'Energia', image: story2, linkY: 0.88 },
+  { id: 'amor', name: 'Amor', image: story3, linkY: 0.88 },
+  { id: 'irresistivel', name: 'Irresistível', image: story4, linkY: 0.88 },
 ];
 
 export default function StoryCreator() {
   const profile = useAuthStore((s) => s.profile);
   const referralCode = profile?.referral_code ?? '';
   const shareLink = `https://app.paradadoacai.online/r/${referralCode}`;
-  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [selected, setSelected] = useState(TEMPLATES[0]);
+  const [exporting, setExporting] = useState(false);
 
-  const handleShare = async () => {
-    if (!canvasRef.current) return;
-
+  const handleExport = async (action: 'share' | 'download') => {
+    setExporting(true);
     try {
-      // Use html2canvas-like approach via canvas API
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = selected.image;
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+      });
+
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
       canvas.height = 1920;
       const ctx = canvas.getContext('2d')!;
 
-      // Draw gradient background
-      const gradient = ctx.createLinearGradient(0, 0, 1080, 1920);
-      const colors = getGradientColors(selectedTemplate.id);
-      gradient.addColorStop(0, colors[0]);
-      gradient.addColorStop(0.5, colors[1]);
-      gradient.addColorStop(1, colors[2]);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, 1080, 1920);
+      // Draw template image filling the canvas
+      ctx.drawImage(img, 0, 0, 1080, 1920);
 
-      // Draw emoji
-      ctx.font = '200px serif';
+      // Draw referral link over the image
+      const linkY = selected.linkY * 1920;
+      
+      // Link background pill
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      roundRect(ctx, 140, linkY - 40, 800, 80, 40);
+      
+      // Link text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 32px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(selectedTemplate.emoji, 540, 600);
-
-      // Draw headline
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 72px sans-serif';
-      ctx.fillText(selectedTemplate.headline, 540, 900, 900);
-
-      // Draw subtext
-      ctx.font = '42px sans-serif';
-      ctx.globalAlpha = 0.8;
-      ctx.fillText(selectedTemplate.subtext, 540, 980, 900);
-      ctx.globalAlpha = 1;
-
-      // Draw referral link box
-      ctx.fillStyle = 'rgba(0,0,0,0.4)';
-      roundRect(ctx, 140, 1200, 800, 120, 30);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px sans-serif';
-      ctx.fillText('🔗 ' + shareLink.replace('https://', ''), 540, 1275, 750);
-
-      // Draw CTA
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.fillText('Arraste pra cima! ☝️', 540, 1500);
-
-      // Draw logo text
-      ctx.font = '28px sans-serif';
-      ctx.globalAlpha = 0.5;
-      ctx.fillText('Parada do Açaí VIP', 540, 1800);
-      ctx.globalAlpha = 1;
+      ctx.fillText('🔗 ' + shareLink.replace('https://', ''), 540, linkY + 10, 720);
 
       const blob = await new Promise<Blob>((resolve) =>
         canvas.toBlob((b) => resolve(b!), 'image/png')
       );
       const file = new File([blob], 'story-parada-vip.png', { type: 'image/png' });
 
-      if (navigator.share && navigator.canShare({ files: [file] })) {
+      if (action === 'share' && navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: 'Parada do Açaí VIP',
-          text: `${selectedTemplate.headline} ${shareLink}`,
+          text: `Peça pelo meu link! ${shareLink}`,
           files: [file],
         });
         toast.success('Story compartilhado! 🎉');
       } else {
-        // Fallback: download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -124,8 +87,10 @@ export default function StoryCreator() {
         toast.success('Imagem baixada! Poste nos seus stories 📱');
       }
     } catch (err) {
-      console.error('Share error:', err);
-      toast.error('Erro ao compartilhar');
+      console.error('Export error:', err);
+      toast.error('Erro ao exportar');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -142,59 +107,54 @@ export default function StoryCreator() {
           {TEMPLATES.map((t) => (
             <button
               key={t.id}
-              onClick={() => setSelectedTemplate(t)}
-              className={`flex-shrink-0 w-20 h-20 rounded-2xl bg-gradient-to-br ${t.gradient} flex items-center justify-center text-3xl transition-all ${
-                selectedTemplate.id === t.id
+              onClick={() => setSelected(t)}
+              className={`flex-shrink-0 w-20 h-28 rounded-2xl overflow-hidden transition-all ${
+                selected.id === t.id
                   ? 'ring-2 ring-brand-purple-light scale-110'
                   : 'opacity-60'
               }`}
             >
-              {t.emoji}
+              <img src={t.image} alt={t.name} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>
 
         {/* Preview */}
         <motion.div
-          key={selectedTemplate.id}
+          key={selected.id}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
-          ref={canvasRef}
-          className={`relative rounded-3xl bg-gradient-to-br ${selectedTemplate.gradient} aspect-[9/16] p-6 flex flex-col items-center justify-center text-center overflow-hidden mb-6`}
+          className="relative rounded-3xl aspect-[9/16] overflow-hidden mb-6"
         >
-          {/* Decorative circles */}
-          <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white/5 blur-2xl" />
-          <div className="absolute bottom-20 right-5 w-40 h-40 rounded-full bg-white/5 blur-3xl" />
-
-          <span className="text-7xl mb-6">{selectedTemplate.emoji}</span>
-          <h2 className="font-heading text-2xl font-bold text-white mb-2">
-            {selectedTemplate.headline}
-          </h2>
-          <p className="text-white/70 text-sm mb-8">{selectedTemplate.subtext}</p>
-
-          {/* Link box - clicável para copiar */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(shareLink);
-              toast.success('Link copiado! 📋');
-            }}
-            className="bg-black/30 rounded-2xl px-4 py-3 backdrop-blur-sm hover:bg-black/50 transition-colors cursor-pointer group"
+          <img
+            src={selected.image}
+            alt={selected.name}
+            className="w-full h-full object-cover"
+          />
+          {/* Link overlay */}
+          <div
+            className="absolute left-4 right-4 flex justify-center"
+            style={{ bottom: `${(1 - selected.linkY) * 100 + 2}%` }}
           >
-            <div className="flex items-center gap-2">
-              <QrCode className="h-5 w-5 text-white/80" />
-              <span className="text-white text-xs font-mono">
-                {shareLink.replace('https://', '')}
-              </span>
-              <Copy className="h-4 w-4 text-white/50 group-hover:text-white/80 transition-colors" />
-            </div>
-          </button>
-
-          <p className="text-white/50 text-xs mt-8">Parada do Açaí VIP</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(shareLink);
+                toast.success('Link copiado! 📋');
+              }}
+              className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2 hover:bg-black/70 transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-white text-xs font-mono truncate max-w-[200px]">
+                  🔗 {shareLink.replace('https://', '')}
+                </span>
+                <Copy className="h-3.5 w-3.5 text-white/50 group-hover:text-white/80 transition-colors" />
+              </div>
+            </button>
+          </div>
         </motion.div>
 
-        {/* Copiar Link dedicado */}
+        {/* Copiar Link */}
         <div className="bg-muted/10 border border-primary-foreground/10 rounded-2xl p-4 mb-4">
           <div className="flex items-center gap-3">
             <div className="flex-1 min-w-0">
@@ -222,14 +182,16 @@ export default function StoryCreator() {
         {/* Actions */}
         <div className="grid grid-cols-2 gap-3">
           <Button
-            onClick={handleShare}
+            onClick={() => handleExport('share')}
+            disabled={exporting}
             className="h-14 rounded-2xl bg-gradient-to-r from-brand-purple to-brand-purple-light text-primary-foreground font-heading font-bold"
           >
             <Share2 className="h-5 w-5 mr-2" />
             Postar Story
           </Button>
           <Button
-            onClick={handleShare}
+            onClick={() => handleExport('download')}
+            disabled={exporting}
             variant="outline"
             className="h-14 rounded-2xl border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 font-heading font-bold"
           >
@@ -241,17 +203,6 @@ export default function StoryCreator() {
       <BottomNav variant="influencer" />
     </div>
   );
-}
-
-// Helper functions
-function getGradientColors(templateId: string): string[] {
-  const map: Record<string, string[]> = {
-    'acai-promo': ['#581c87', '#7e22ce', '#db2777'],
-    'combo-deal': ['#ea580c', '#dc2626', '#6b21a8'],
-    'fresh-vibes': ['#16a34a', '#0d9488', '#06b6d4'],
-    'night-mode': ['#111827', '#581c87', '#6d28d9'],
-  };
-  return map[templateId] || map['acai-promo'];
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
