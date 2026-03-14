@@ -68,12 +68,15 @@ export default function AdminOverview() {
           ))}
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <Link to="/admin/missions" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             Gerenciar Missões
           </Link>
           <Link to="/admin/prizes" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             Gerenciar Prêmios
+          </Link>
+          <Link to="/admin/commissions" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            Gerenciar Comissões
           </Link>
         </div>
       </div>
