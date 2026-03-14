@@ -94,6 +94,7 @@ const App = () => (
             <Route path="/influencer/referrals" element={<InfluencerReferrals />} />
             <Route path="/influencer/withdraw" element={<InfluencerWithdraw />} />
             <Route path="/influencer/profile" element={<InfluencerProfile />} />
+            <Route path="/influencer/personal-data" element={<InfluencerPersonalData />} />
             <Route path="/influencer/story-creator" element={<InfluencerStoryCreator />} />
             <Route path="/influencer/leaderboard" element={<InfluencerLeaderboard />} />
           </Route>
