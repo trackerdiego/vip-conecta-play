@@ -86,14 +86,24 @@ export function useDeliveries() {
 
   const updateDeliveryStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const updates: any = { status };
-      if (status === 'delivered') updates.delivered_at = new Date().toISOString();
-      const { error } = await supabase.from('deliveries').update(updates).eq('id', id);
+      if (status === 'delivered') {
+        // Use atomic RPC to mark delivered + credit wallet in one transaction
+        const { data, error } = await supabase.rpc('credit_driver_delivery', {
+          _delivery_id: id,
+          _driver_id: user!.id,
+        });
+        if (error) throw error;
+        return data;
+      }
+      // For other status changes (e.g. picked_up), simple update
+      const { error } = await supabase.from('deliveries').update({ status }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['active-delivery'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-deliveries'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-history'] });
     },
   });
 
