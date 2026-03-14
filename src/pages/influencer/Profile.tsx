@@ -1,26 +1,28 @@
 import { BottomNav } from '@/components/shared/BottomNav';
 import { Button } from '@/components/ui/button';
-import { LogOut, Settings, ChevronRight } from 'lucide-react';
-import { mockInfluencer } from '@/data/mockData';
+import { LogOut, ChevronRight } from 'lucide-react';
 import { LevelBadge } from '@/components/shared/LevelBadge';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { getLevelInfo } from '@/lib/levels';
 
 export default function InfluencerProfile() {
   const navigate = useNavigate();
-  const signOut = useAuthStore((s) => s.signOut);
-  const data = mockInfluencer;
+  const { user, profile, signOut } = useAuthStore();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth/login', { replace: true });
   };
 
+  const level = profile?.level ?? 1;
+  const { levelName } = getLevelInfo(level);
+
   const menuItems = [
-    { label: 'Dados pessoais', icon: '👤' },
-    { label: 'Configurações', icon: '⚙️' },
-    { label: 'Ajuda e suporte', icon: '❓' },
-    { label: 'Termos de uso', icon: '📄' },
+    { label: 'Dados pessoais', icon: '👤', action: () => navigate('/influencer/personal-data') },
+    { label: 'Configurações', icon: '⚙️', action: undefined },
+    { label: 'Ajuda e suporte', icon: '❓', action: () => window.open('https://wa.me/5500000000000', '_blank') },
+    { label: 'Termos de uso', icon: '📄', action: () => navigate('/terms') },
   ];
 
   return (
@@ -30,12 +32,14 @@ export default function InfluencerProfile() {
 
         <div className="glass-dark rounded-2xl p-5 mb-6 flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-gradient-to-br from-brand-purple to-brand-orange flex items-center justify-center text-2xl font-bold ring-2 ring-brand-purple-light/50">
-            {data.name.charAt(0)}
+            {profile?.full_name?.charAt(0) ?? '?'}
           </div>
           <div>
-            <h2 className="font-heading font-bold text-lg">{data.name}</h2>
-            <LevelBadge level={data.level} name={data.levelName} />
-            <p className="text-xs text-muted-foreground mt-1">Código: {data.referralCode}</p>
+            <h2 className="font-heading font-bold text-lg">{profile?.full_name ?? 'Usuário'}</h2>
+            <LevelBadge level={level} name={levelName} />
+            {profile?.referral_code && (
+              <p className="text-xs text-muted-foreground mt-1">Código: {profile.referral_code}</p>
+            )}
           </div>
         </div>
 
@@ -43,7 +47,9 @@ export default function InfluencerProfile() {
           {menuItems.map((item) => (
             <button
               key={item.label}
-              className="w-full glass-dark rounded-xl p-4 flex items-center justify-between hover:bg-muted/10 transition-colors"
+              onClick={item.action}
+              disabled={!item.action}
+              className="w-full glass-dark rounded-xl p-4 flex items-center justify-between hover:bg-muted/10 transition-colors disabled:opacity-50"
             >
               <span className="flex items-center gap-3">
                 <span>{item.icon}</span>

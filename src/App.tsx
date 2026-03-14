@@ -32,6 +32,9 @@ import AdminMissions from '@/pages/admin/Missions';
 import AdminPrizes from '@/pages/admin/Prizes';
 import AdminCommissions from '@/pages/admin/Commissions';
 import InstallPWA from '@/pages/InstallPWA';
+import Terms from '@/pages/Terms';
+import InfluencerPersonalData from '@/pages/influencer/PersonalData';
+import DriverPersonalData from '@/pages/driver/PersonalData';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -75,6 +78,7 @@ const App = () => (
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/install" element={<InstallPWA />} />
           <Route path="/r/:code" element={<ReferralRedirect />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* Auth */}
           <Route path="/auth/login" element={<Login />} />
@@ -90,6 +94,7 @@ const App = () => (
             <Route path="/influencer/referrals" element={<InfluencerReferrals />} />
             <Route path="/influencer/withdraw" element={<InfluencerWithdraw />} />
             <Route path="/influencer/profile" element={<InfluencerProfile />} />
+            <Route path="/influencer/personal-data" element={<InfluencerPersonalData />} />
             <Route path="/influencer/story-creator" element={<InfluencerStoryCreator />} />
             <Route path="/influencer/leaderboard" element={<InfluencerLeaderboard />} />
           </Route>
@@ -100,6 +105,7 @@ const App = () => (
             <Route path="/driver/history" element={<DriverHistory />} />
             <Route path="/driver/earnings" element={<DriverEarnings />} />
             <Route path="/driver/profile" element={<DriverProfile />} />
+            <Route path="/driver/personal-data" element={<DriverPersonalData />} />
           </Route>
 
           {/* Admin — Protected */}
