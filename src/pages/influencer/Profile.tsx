@@ -4,7 +4,7 @@ import { LogOut, ChevronRight } from 'lucide-react';
 import { LevelBadge } from '@/components/shared/LevelBadge';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { getLevelName } from '@/lib/levels';
+import { getLevelInfo } from '@/lib/levels';
 
 export default function InfluencerProfile() {
   const navigate = useNavigate();
