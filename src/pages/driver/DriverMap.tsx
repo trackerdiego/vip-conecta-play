@@ -63,6 +63,7 @@ function playNotificationBeep() {
 
 export default function DriverMap() {
   const profile = useAuthStore((s) => s.profile);
+  const setProfile = useAuthStore((s) => s.setProfile);
   const [isOnline, setIsOnline] = useState(profile?.is_online ?? false);
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
@@ -74,6 +75,13 @@ export default function DriverMap() {
   const { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus } = useDeliveries();
   const { balance } = useWallet();
   useDriverLocation(isOnline);
+
+  // Sync isOnline with profile store (persists across tab navigation)
+  useEffect(() => {
+    if (profile?.is_online !== undefined && profile.is_online !== isOnline) {
+      setIsOnline(profile.is_online);
+    }
+  }, [profile?.is_online]);
 
   // Geolocation
   useEffect(() => {
@@ -139,8 +147,12 @@ export default function DriverMap() {
   };
 
   const toggleOnline = () => {
-    setIsOnline(!isOnline);
-    toast(isOnline ? 'Você está offline' : 'Você está online! Aguardando corridas...');
+    const newState = !isOnline;
+    setIsOnline(newState);
+    if (profile) {
+      setProfile({ ...profile, is_online: newState });
+    }
+    toast(newState ? 'Você está online! Aguardando corridas...' : 'Você está offline');
   };
 
   return (
