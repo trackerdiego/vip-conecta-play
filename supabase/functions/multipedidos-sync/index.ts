@@ -63,12 +63,13 @@ async function updateMultipedidosStatus(
 
   try {
     const jwt = await getMultipedidosJwt();
+    const restaurantId = Deno.env.get("MULTIPEDIDOS_RESTAURANT_ID");
+    if (!restaurantId) throw new Error("MULTIPEDIDOS_RESTAURANT_ID not set");
 
-    // Try the status update endpoint — adjust path if Multipedidos uses a different one
     const res = await fetch(
-      `${MULTIPEDIDOS_API}/orders/${externalOrderId}/status`,
+      `https://api.multipedidos.com.br/restaurant/${restaurantId}/order/${externalOrderId}/status`,
       {
-        method: "PUT",
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${jwt}`,
