@@ -16,7 +16,7 @@ export default function InfluencerProfile() {
   };
 
   const level = profile?.level ?? 1;
-  const levelName = getLevelName(level);
+  const { levelName } = getLevelInfo(level);
 
   const menuItems = [
     { label: 'Dados pessoais', icon: '👤', action: () => navigate('/influencer/personal-data') },
