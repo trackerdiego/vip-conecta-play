@@ -27,33 +27,22 @@ const driverIcon = L.divIcon({
   iconAnchor: [16, 16],
 });
 
-const pickupIcon = L.divIcon({
-  html: '<div style="font-size:24px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">📍</div>',
-  className: 'bg-transparent',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-});
+function createNumberedIcon(num: number, type: 'pickup' | 'delivery', isActive: boolean) {
+  const color = type === 'pickup' ? '#f97316' : '#22c55e';
+  const size = isActive ? 36 : 28;
+  const half = size / 2;
+  const fontSize = isActive ? 16 : 13;
+  const glow = isActive
+    ? `box-shadow:0 0 12px ${color}88,0 0 24px ${color}44;animation:marker-pulse 2s infinite;`
+    : `opacity:0.7;`;
 
-const deliveryIcon = L.divIcon({
-  html: '<div style="font-size:24px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">🏠</div>',
-  className: 'bg-transparent',
-  iconSize: [28, 28],
-  iconAnchor: [14, 28],
-});
-
-const pickupIconActive = L.divIcon({
-  html: '<div style="font-size:32px;filter:drop-shadow(0 2px 8px rgba(249,115,22,0.6));animation:pulse 2s infinite">📍</div>',
-  className: 'bg-transparent',
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-});
-
-const deliveryIconActive = L.divIcon({
-  html: '<div style="font-size:32px;filter:drop-shadow(0 2px 8px rgba(34,197,94,0.6));animation:pulse 2s infinite">🏠</div>',
-  className: 'bg-transparent',
-  iconSize: [36, 36],
-  iconAnchor: [18, 36],
-});
+  return L.divIcon({
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:${fontSize}px;font-family:'Space Grotesk',sans-serif;border:2px solid #fff;${glow}filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));">${num}</div>`,
+    className: 'bg-transparent',
+    iconSize: [size, size],
+    iconAnchor: [half, half],
+  });
+}
 
 function MapCenterUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
