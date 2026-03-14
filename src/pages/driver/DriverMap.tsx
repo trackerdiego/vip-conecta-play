@@ -207,7 +207,7 @@ export default function DriverMap() {
 
   const handlePickup = () => {
     if (!activeDelivery) return;
-    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'picked_up' });
+    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'picked_up', externalOrderId: activeDelivery.external_order_id ?? undefined });
     setNavInstructions([]);
     setRouteInfo(null);
     toast.success('Coleta confirmada! Siga para a entrega.');
