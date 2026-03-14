@@ -52,6 +52,9 @@ export function useDriverLocation(isOnline: boolean) {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from('profiles').update({ is_online: isOnline }).eq('id', user.id);
+    const updateOnlineStatus = async () => {
+      await supabase.from('profiles').update({ is_online: isOnline }).eq('id', user.id);
+    };
+    updateOnlineStatus();
   }, [user, isOnline]);
 }
