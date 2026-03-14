@@ -63,6 +63,7 @@ function playNotificationBeep() {
 
 export default function DriverMap() {
   const profile = useAuthStore((s) => s.profile);
+  const setProfile = useAuthStore((s) => s.setProfile);
   const [isOnline, setIsOnline] = useState(profile?.is_online ?? false);
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
