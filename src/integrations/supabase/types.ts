@@ -551,6 +551,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_driver_delivery: {
+        Args: { _delivery_id: string; _driver_id: string }
+        Returns: number
+      }
       credit_referral_commission: {
         Args: {
           _commission_rate?: number
