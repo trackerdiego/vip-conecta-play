@@ -19,6 +19,15 @@ const STATUS_MAP: Record<string, string> = {
   delivered: "OVER",
 };
 
+// Mapeamento de status Multipedidos → status interno de orders
+const MP_STATUS_TO_ORDER: Record<string, string> = {
+  CREATED: "received",
+  APPROVED: "preparing",
+  DONE: "ready",
+  CANCELED: "canceled",
+  SCHEDULED: "received",
+};
+
 function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -44,7 +53,6 @@ async function getMultipedidosJwt(): Promise<string> {
   }
 
   const data = await res.json();
-  // JWT may come as data.token or data.access_token depending on API version
   const jwt = data.token || data.access_token;
   if (!jwt) throw new Error("No JWT returned from Multipedidos auth");
   return jwt;
@@ -213,7 +221,7 @@ async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } 
   }
 }
 
-// ── Delivery creation ──────────────────────────────────────────────
+// ── Address helpers ────────────────────────────────────────────────
 
 function buildDeliveryAddress(order: any): string {
   const street = order.address || order.client?.street || "";
@@ -235,42 +243,119 @@ function buildDeliveryAddress(order: any): string {
   return addr || "Endereço não informado";
 }
 
-async function createDelivery(order: any, externalId: string, supabaseAdmin: any) {
+function extractCustomerName(order: any): string {
+  return order.client?.name || order.customer_name || order.client?.first_name || "Cliente";
+}
+
+// ── Save order to orders table ─────────────────────────────────────
+
+async function saveOrder(
+  order: any,
+  externalId: string,
+  status: string,
+  supabaseAdmin: any,
+): Promise<{ upserted: boolean }> {
+  const orderTotal = order.total || 0;
+  const refCode = extractReferralCode(order);
   const deliveryAddress = order.delivery_type === "table"
     ? `Mesa: ${order.table || "N/A"}`
     : buildDeliveryAddress(order);
+  const customerName = extractCustomerName(order);
 
-  const clientCoords = order.client?.coordinates;
+  const { error } = await supabaseAdmin.from("orders").upsert(
+    {
+      external_order_id: externalId,
+      status,
+      order_data: order,
+      order_total: orderTotal,
+      referral_code: refCode,
+      delivery_address: deliveryAddress,
+      customer_name: customerName,
+    },
+    { onConflict: "external_order_id" },
+  );
+
+  if (error) {
+    console.error(`Failed to save order ${externalId}:`, error);
+    throw error;
+  }
+
+  return { upserted: true };
+}
+
+// ── Dispatch order → create delivery ───────────────────────────────
+
+async function dispatchOrder(
+  externalId: string,
+  supabaseAdmin: any,
+): Promise<{ dispatched: boolean; delivery_id?: string }> {
+  // Fetch the order
+  const { data: order, error: fetchErr } = await supabaseAdmin
+    .from("orders")
+    .select("*")
+    .eq("external_order_id", externalId)
+    .maybeSingle();
+
+  if (fetchErr || !order) {
+    console.error(`Order ${externalId} not found for dispatch`);
+    return { dispatched: false };
+  }
+
+  if (order.status === "dispatched") {
+    console.log(`Order ${externalId} already dispatched`);
+    return { dispatched: false };
+  }
+
+  const orderData = order.order_data || {};
+
+  // Geocode
+  const clientCoords = orderData.client?.coordinates;
   let deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
   let deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
 
-  if (!deliveryLat && !deliveryLng && order.delivery_type !== "table") {
-    const geocoded = await geocodeAddress(order);
+  if (!deliveryLat && !deliveryLng && orderData.delivery_type !== "table") {
+    const geocoded = await geocodeAddress(orderData);
     if (geocoded) {
       deliveryLat = geocoded.lat;
       deliveryLng = geocoded.lng;
     }
   }
 
-  const { data, error } = await supabaseAdmin.from("deliveries").upsert(
+  const fare = orderData.motoboy_remuneration > 0
+    ? orderData.motoboy_remuneration
+    : (orderData.delivery_fee > 0 ? orderData.delivery_fee : 5);
+
+  // Create delivery
+  const { error: deliveryErr } = await supabaseAdmin.from("deliveries").upsert(
     {
       external_order_id: externalId,
       pickup_address: "Parada do Açaí Caucaia",
-      delivery_address: deliveryAddress,
-      fare: (order.motoboy_remuneration > 0 ? order.motoboy_remuneration : (order.delivery_fee > 0 ? order.delivery_fee : 5)),
+      delivery_address: order.delivery_address || "Endereço não informado",
+      fare,
       status: "pending",
       offered_at: new Date().toISOString(),
       pickup_lat: PICKUP_LAT,
       pickup_lng: PICKUP_LNG,
       delivery_lat: deliveryLat,
       delivery_lng: deliveryLng,
-      multipedidos_order_data: order,
+      multipedidos_order_data: orderData,
     },
     { onConflict: "external_order_id", ignoreDuplicates: true },
   );
 
-  if (error) throw error;
-  return { created: !data ? false : true, id: externalId };
+  if (deliveryErr) {
+    console.error(`Failed to create delivery for ${externalId}:`, deliveryErr);
+    throw deliveryErr;
+  }
+
+  // Update order status to dispatched
+  await supabaseAdmin
+    .from("orders")
+    .update({ status: "dispatched" })
+    .eq("external_order_id", externalId);
+
+  console.log(`Order ${externalId} dispatched to drivers`);
+  return { dispatched: true };
 }
 
 // ── Webhook handler ────────────────────────────────────────────────
@@ -288,30 +373,51 @@ async function handleWebhook(body: any) {
     const externalId = String(order.id);
     const orderTotal = order.total || 0;
     const refCode = extractReferralCode(order);
+    const mpStatus = order.status || "CREATED";
 
-    console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}`);
+    console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}, mpStatus=${mpStatus}`);
 
-    const deliveryResult = await createDelivery(order, externalId, supabaseAdmin);
+    // Map Multipedidos status to internal order status
+    const internalStatus = MP_STATUS_TO_ORDER[mpStatus] || "received";
 
+    // Save/update order in orders table
+    await saveOrder(order, externalId, internalStatus, supabaseAdmin);
+
+    // Credit referral on first receive (don't wait for DONE)
     let referralResult = null;
     if (refCode) {
       referralResult = await creditReferral(refCode, externalId, orderTotal, supabaseAdmin);
       console.log(`Referral credit result for ${refCode}: ${referralResult}`);
     } else {
-      console.warn(
-        `Order ${externalId} arrived via webhook but NO referral code found in payload.`
-      );
+      console.warn(`Order ${externalId}: no referral code found`);
+    }
+
+    // If status is DONE (ready for pickup by motoboy), dispatch to drivers
+    let dispatchResult = null;
+    if (mpStatus === "DONE") {
+      dispatchResult = await dispatchOrder(externalId, supabaseAdmin);
+      console.log(`Dispatch result for ${externalId}: ${JSON.stringify(dispatchResult)}`);
     }
 
     results.push({
       id: externalId,
-      delivery: deliveryResult,
+      mp_status: mpStatus,
+      internal_status: internalStatus,
+      dispatched: dispatchResult?.dispatched ?? false,
       referral_credited: !!referralResult,
       ref_code: refCode,
     });
   }
 
   return results;
+}
+
+// ── Manual dispatch (admin fallback) ───────────────────────────────
+
+async function handleManualDispatch(externalOrderId: string) {
+  const supabaseAdmin = getSupabaseAdmin();
+  const result = await dispatchOrder(externalOrderId, supabaseAdmin);
+  return result;
 }
 
 // ── Main handler ───────────────────────────────────────────────────
@@ -330,6 +436,23 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const results = await handleWebhook(body);
       return new Response(JSON.stringify({ ok: true, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── Manual dispatch: admin marks order as ready ───
+    if (action === "dispatch" && req.method === "POST") {
+      const { external_order_id } = await req.json();
+
+      if (!external_order_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing external_order_id" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = await handleManualDispatch(external_order_id);
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
