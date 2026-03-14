@@ -403,9 +403,9 @@ async function handleWebhook(body: any) {
       console.warn(`Order ${externalId}: no referral code found`);
     }
 
-    // If status is DONE or SENT (ready for pickup by motoboy), dispatch to drivers
+    // If status is DONE (ready for pickup by motoboy), dispatch to drivers
     let dispatchResult = null;
-    if (mpStatus === "DONE" || mpStatus === "SENT") {
+    if (mpStatus === "DONE") {
       dispatchResult = await dispatchOrder(externalId, supabaseAdmin);
       console.log(`Dispatch result for ${externalId}: ${JSON.stringify(dispatchResult)}`);
     }
