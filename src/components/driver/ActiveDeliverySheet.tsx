@@ -1,7 +1,8 @@
-import { motion } from 'framer-motion';
-import { MapPin, Navigation, ExternalLink, Clock, Route } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Navigation, ExternalLink, Clock, Route, GripHorizontal } from 'lucide-react';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Button } from '@/components/ui/button';
+import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer';
 
 interface ActiveDeliverySheetProps {
   delivery: any;
@@ -28,6 +29,7 @@ function formatDuration(seconds: number): string {
 }
 
 export function ActiveDeliverySheet({ delivery, onPickup, onDelivered, routeInfo }: ActiveDeliverySheetProps) {
+  const [open, setOpen] = useState(true);
   const status = delivery.status;
   const isPickup = status === 'accepted';
 
@@ -40,70 +42,71 @@ export function ActiveDeliverySheet({ delivery, onPickup, onDelivered, routeInfo
   };
 
   return (
-    <motion.div
-      initial={{ y: 300 }}
-      animate={{ y: 0 }}
-      exit={{ y: 300 }}
-      transition={{ type: 'spring', damping: 25 }}
-      className="absolute bottom-20 left-0 right-0 z-[1000] px-4"
+    <Drawer
+      open={open}
+      onOpenChange={setOpen}
+      snapPoints={[0.15, 0.45]}
+      activeSnapPoint={open ? 0.45 : 0.15}
+      onClose={() => setOpen(false)}
+      modal={false}
+      dismissible={false}
     >
-      <div className="bg-background rounded-3xl shadow-2xl border border-border p-4 max-w-md mx-auto">
-        {/* Compact header with status + fare + route info */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${isPickup ? 'bg-brand-orange animate-pulse' : 'bg-brand-green'}`} />
-            <h3 className="font-heading font-bold text-sm">
-              {isPickup ? 'Coleta' : 'Entrega'}
-            </h3>
-          </div>
-          <div className="flex items-center gap-3">
-            {routeInfo && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Route className="h-3 w-3" />
-                  <span className="font-semibold text-foreground">{formatDistance(routeInfo.distance)}</span>
+      <DrawerContent className="z-[1000] bg-background border-t border-border rounded-t-3xl shadow-2xl">
+        {/* Compact mini-bar always visible */}
+        <div className="px-4 pt-1 pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`h-2.5 w-2.5 rounded-full ${isPickup ? 'bg-brand-orange animate-pulse' : 'bg-brand-green'}`} />
+              <span className="font-heading font-bold text-sm">
+                {isPickup ? 'Indo para Coleta' : 'Indo para Entrega'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {routeInfo && (
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {formatDistance(routeInfo.distance)} · {formatDuration(routeInfo.duration)}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span className="font-semibold text-foreground">{formatDuration(routeInfo.duration)}</span>
-                </span>
-              </div>
-            )}
-            <CurrencyDisplay value={Number(delivery.fare)} size="sm" className="text-brand-green" />
+              )}
+              <CurrencyDisplay value={Number(delivery.fare)} size="sm" className="text-brand-green" />
+            </div>
           </div>
         </div>
 
-        {/* Compact address */}
-        <div className="rounded-xl p-2.5 mb-3 bg-muted/50">
-          <div className="flex items-center gap-2">
-            {isPickup ? (
-              <MapPin className="h-4 w-4 shrink-0 text-brand-purple" />
-            ) : (
-              <Navigation className="h-4 w-4 shrink-0 text-brand-green" />
-            )}
-            <p className="text-sm font-medium truncate">
-              {isPickup ? delivery.pickup_address : delivery.delivery_address}
-            </p>
+        {/* Expanded content */}
+        <div className="px-4 pb-4 space-y-3">
+          {/* Address */}
+          <div className="rounded-xl p-3 bg-muted/50">
+            <div className="flex items-center gap-2">
+              {isPickup ? (
+                <MapPin className="h-4 w-4 shrink-0 text-brand-purple" />
+              ) : (
+                <Navigation className="h-4 w-4 shrink-0 text-brand-green" />
+              )}
+              <p className="text-sm font-medium truncate">
+                {isPickup ? delivery.pickup_address : delivery.delivery_address}
+              </p>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <Button
+              onClick={isPickup ? onPickup : onDelivered}
+              className="h-12 rounded-2xl bg-brand-green hover:bg-brand-green/90 text-primary-foreground font-heading text-sm font-bold"
+            >
+              {isPickup ? '📍 Cheguei na Coleta' : '✅ Entrega Concluída'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleNavigate}
+              className="h-12 w-12 rounded-2xl p-0"
+              title="Abrir no Google Maps"
+            >
+              <ExternalLink className="h-5 w-5" />
+            </Button>
           </div>
         </div>
-
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <Button
-            onClick={isPickup ? onPickup : onDelivered}
-            className="h-12 rounded-2xl bg-brand-green hover:bg-brand-green/90 text-primary-foreground font-heading text-sm font-bold"
-          >
-            {isPickup ? '📍 Cheguei na Coleta' : '✅ Entrega Concluída'}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleNavigate}
-            className="h-12 w-12 rounded-2xl p-0"
-            title="Abrir no Google Maps"
-          >
-            <ExternalLink className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-    </motion.div>
+      </DrawerContent>
+    </Drawer>
   );
 }
