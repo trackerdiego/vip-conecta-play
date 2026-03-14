@@ -215,7 +215,7 @@ export default function DriverMap() {
 
   const handleDelivered = () => {
     if (!activeDelivery) return;
-    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'delivered' });
+    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'delivered', externalOrderId: activeDelivery.external_order_id ?? undefined });
     setNavInstructions([]);
     setRouteInfo(null);
     toast.success(`R$ ${Number(activeDelivery.fare).toFixed(2)} creditados! 🎉`);
