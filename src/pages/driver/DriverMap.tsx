@@ -76,12 +76,7 @@ export default function DriverMap() {
   const { balance } = useWallet();
   useDriverLocation(isOnline);
 
-  // Sync isOnline with profile store (persists across tab navigation)
-  useEffect(() => {
-    if (profile?.is_online !== undefined && profile.is_online !== isOnline) {
-      setIsOnline(profile.is_online);
-    }
-  }, [profile?.is_online]);
+  // isOnline is initialized from profile and managed locally — no re-sync from profile
 
   // Geolocation
   useEffect(() => {
