@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Coordenadas fixas da Parada do Açaí VIP (Fortaleza-CE)
+const PICKUP_LAT = -3.7319;
+const PICKUP_LNG = -38.5267;
+
 function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -28,10 +32,6 @@ function extractReferralCode(order: any): string | null {
   );
 }
 
-/**
- * Get the commission rate for a given level from the commission_rates table.
- * Falls back to 0.01 (1%) if not found.
- */
 async function getCommissionRate(level: number, supabaseAdmin: any): Promise<number> {
   const { data } = await supabaseAdmin
     .from("commission_rates")
@@ -48,7 +48,6 @@ async function creditReferral(
   orderTotal: number,
   supabaseAdmin: any,
 ): Promise<string | null> {
-  // Find influencer by referral code, including their level
   const { data: influencer } = await supabaseAdmin
     .from("profiles")
     .select("id, level")
@@ -81,8 +80,41 @@ async function creditReferral(
   return saleId;
 }
 
+/**
+ * Geocode an address using Nominatim (OpenStreetMap).
+ * Returns { lat, lng } or null if not found.
+ */
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    // Append ", Fortaleza, CE, Brasil" for better accuracy
+    const query = `${address}, Fortaleza, CE, Brasil`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+    
+    const res = await fetch(url, {
+      headers: { "User-Agent": "ParadaDoAcaiVIP/1.0" },
+    });
+    
+    if (!res.ok) {
+      console.warn(`Nominatim returned ${res.status} for: ${query}`);
+      return null;
+    }
+    
+    const results = await res.json();
+    if (results.length > 0) {
+      const { lat, lon } = results[0];
+      console.log(`Geocoded "${query}" → ${lat}, ${lon}`);
+      return { lat: parseFloat(lat), lng: parseFloat(lon) };
+    }
+    
+    console.warn(`No geocoding results for: ${query}`);
+    return null;
+  } catch (err) {
+    console.error(`Geocoding error for "${address}":`, err);
+    return null;
+  }
+}
+
 function buildDeliveryAddress(order: any): string {
-  // Multipedidos sends address fields at root level, not nested
   const street = order.address || order.client?.street || "";
   const number = order.street_number || order.client?.street_number || "";
   const neighborhood = order.bairro || order.client?.bairro || "";
@@ -107,9 +139,19 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
     ? `Mesa: ${order.table || "N/A"}`
     : buildDeliveryAddress(order);
 
+  // Try to get delivery coordinates from order data first
   const clientCoords = order.client?.coordinates;
-  const deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
-  const deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
+  let deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
+  let deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
+
+  // If no coordinates from order, geocode the delivery address
+  if (!deliveryLat && !deliveryLng && deliveryAddress && order.delivery_type !== "table") {
+    const geocoded = await geocodeAddress(deliveryAddress);
+    if (geocoded) {
+      deliveryLat = geocoded.lat;
+      deliveryLng = geocoded.lng;
+    }
+  }
 
   const { data, error } = await supabaseAdmin.from("deliveries").upsert(
     {
@@ -119,6 +161,8 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
       fare: (order.motoboy_remuneration > 0 ? order.motoboy_remuneration : (order.delivery_fee > 0 ? order.delivery_fee : 5)),
       status: "pending",
       offered_at: new Date().toISOString(),
+      pickup_lat: PICKUP_LAT,
+      pickup_lng: PICKUP_LNG,
       delivery_lat: deliveryLat,
       delivery_lng: deliveryLng,
       multipedidos_order_data: order,

@@ -349,17 +349,15 @@ export default function DriverMap() {
         )}
       </AnimatePresence>
 
-      {/* Active Delivery */}
-      <AnimatePresence>
-        {activeDelivery && (
-          <ActiveDeliverySheet
-            delivery={activeDelivery}
-            onPickup={handlePickup}
-            onDelivered={handleDelivered}
-            routeInfo={routeInfo}
-          />
-        )}
-      </AnimatePresence>
+      {/* Active Delivery - Swipeable Drawer */}
+      {activeDelivery && (
+        <ActiveDeliverySheet
+          delivery={activeDelivery}
+          onPickup={handlePickup}
+          onDelivered={handleDelivered}
+          routeInfo={routeInfo}
+        />
+      )}
 
       <BottomNav variant="driver" />
     </div>
