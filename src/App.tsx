@@ -32,6 +32,9 @@ import AdminMissions from '@/pages/admin/Missions';
 import AdminPrizes from '@/pages/admin/Prizes';
 import AdminCommissions from '@/pages/admin/Commissions';
 import InstallPWA from '@/pages/InstallPWA';
+import Terms from '@/pages/Terms';
+import InfluencerPersonalData from '@/pages/influencer/PersonalData';
+import DriverPersonalData from '@/pages/driver/PersonalData';
 import NotFound from '@/pages/NotFound';
 
 const queryClient = new QueryClient();
