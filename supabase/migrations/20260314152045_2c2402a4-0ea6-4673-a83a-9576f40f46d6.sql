@@ -1,0 +1,1 @@
+ALTER TABLE public.deliveries ADD CONSTRAINT deliveries_external_order_id_unique UNIQUE (external_order_id);
