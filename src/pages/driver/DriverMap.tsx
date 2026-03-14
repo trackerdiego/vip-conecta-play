@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/shared/BottomNav';
 import { MapStyleSelector, useMapStyle } from '@/components/shared/MapStyleSelector';
 import { DeliveryOfferSheet } from '@/components/driver/DeliveryOfferSheet';
 import { ActiveDeliverySheet } from '@/components/driver/ActiveDeliverySheet';
+import { RouteDisplay } from '@/components/driver/RouteDisplay';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliveries } from '@/hooks/useDeliveries';
 import { useDriverLocation } from '@/hooks/useDriverLocation';
