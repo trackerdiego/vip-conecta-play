@@ -302,12 +302,25 @@ async function dispatchOrder(
     return { dispatched: false };
   }
 
-  if (order.status === "dispatched") {
-    console.log(`Order ${externalId} already dispatched`);
-    return { dispatched: false };
-  }
-
   const orderData = order.order_data || {};
+
+  // Check if a delivery already exists for this order
+  const { data: existingDelivery } = await supabaseAdmin
+    .from("deliveries")
+    .select("id, status")
+    .eq("external_order_id", externalId)
+    .maybeSingle();
+
+  if (existingDelivery) {
+    const activeStatuses = ["pending", "accepted", "picked_up"];
+    if (activeStatuses.includes(existingDelivery.status)) {
+      console.log(`Order ${externalId} already has active delivery (${existingDelivery.status}), skipping`);
+      return { dispatched: false };
+    }
+    // Old delivery (delivered/canceled) — delete to allow re-dispatch
+    console.log(`Removing old delivery ${existingDelivery.id} (status=${existingDelivery.status}) for re-dispatch`);
+    await supabaseAdmin.from("deliveries").delete().eq("id", existingDelivery.id);
+  }
 
   // Geocode
   const clientCoords = orderData.client?.coordinates;
@@ -327,22 +340,19 @@ async function dispatchOrder(
     : (orderData.delivery_fee > 0 ? orderData.delivery_fee : 5);
 
   // Create delivery
-  const { error: deliveryErr } = await supabaseAdmin.from("deliveries").upsert(
-    {
-      external_order_id: externalId,
-      pickup_address: "Parada do Açaí Caucaia",
-      delivery_address: order.delivery_address || "Endereço não informado",
-      fare,
-      status: "pending",
-      offered_at: new Date().toISOString(),
-      pickup_lat: PICKUP_LAT,
-      pickup_lng: PICKUP_LNG,
-      delivery_lat: deliveryLat,
-      delivery_lng: deliveryLng,
-      multipedidos_order_data: orderData,
-    },
-    { onConflict: "external_order_id", ignoreDuplicates: true },
-  );
+  const { error: deliveryErr } = await supabaseAdmin.from("deliveries").insert({
+    external_order_id: externalId,
+    pickup_address: "Parada do Açaí Caucaia",
+    delivery_address: order.delivery_address || "Endereço não informado",
+    fare,
+    status: "pending",
+    offered_at: new Date().toISOString(),
+    pickup_lat: PICKUP_LAT,
+    pickup_lng: PICKUP_LNG,
+    delivery_lat: deliveryLat,
+    delivery_lng: deliveryLng,
+    multipedidos_order_data: orderData,
+  });
 
   if (deliveryErr) {
     console.error(`Failed to create delivery for ${externalId}:`, deliveryErr);
@@ -393,9 +403,9 @@ async function handleWebhook(body: any) {
       console.warn(`Order ${externalId}: no referral code found`);
     }
 
-    // If status is DONE or SENT (ready for pickup by motoboy), dispatch to drivers
+    // If status is DONE (ready for pickup by motoboy), dispatch to drivers
     let dispatchResult = null;
-    if (mpStatus === "DONE" || mpStatus === "SENT") {
+    if (mpStatus === "DONE") {
       dispatchResult = await dispatchOrder(externalId, supabaseAdmin);
       console.log(`Dispatch result for ${externalId}: ${JSON.stringify(dispatchResult)}`);
     }
