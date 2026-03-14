@@ -72,7 +72,7 @@ export default function Register() {
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
       <div className="relative z-10 w-full max-w-sm">
         <div className="text-center mb-6">
-          <img src={logoParadaVip} alt="Parada do Açaí VIP" className="h-20 w-auto mx-auto mb-4 drop-shadow-lg" />
+          <img src={logoParadaVip} alt="Parada do Açaí Caucaia" className="h-20 w-auto mx-auto mb-4 drop-shadow-lg" />
           <h1 className="font-heading text-2xl font-bold text-foreground">Criar Conta</h1>
           <p className="text-sm text-muted-foreground mt-1">Junte-se à Parada VIP</p>
         </div>

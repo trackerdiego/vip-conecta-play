@@ -16,7 +16,7 @@ export default function Onboarding() {
         {/* Logo */}
         <motion.img
           src={logoParadaVip}
-          alt="Parada do Açaí VIP"
+          alt="Parada do Açaí Caucaia"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}

@@ -6,9 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Coordenadas fixas da Parada do Açaí VIP (Fortaleza-CE)
-const PICKUP_LAT = -3.7319;
-const PICKUP_LNG = -38.5267;
+// Coordenadas fixas da Parada do Açaí Caucaia (Caucaia-CE)
+const PICKUP_LAT = -3.7373;
+const PICKUP_LNG = -38.6531;
 
 function getSupabaseAdmin() {
   return createClient(
@@ -182,7 +182,7 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   const { data, error } = await supabaseAdmin.from("deliveries").upsert(
     {
       external_order_id: externalId,
-      pickup_address: "Parada do Açaí VIP",
+      pickup_address: "Parada do Açaí Caucaia",
       delivery_address: deliveryAddress,
       fare: (order.motoboy_remuneration > 0 ? order.motoboy_remuneration : (order.delivery_fee > 0 ? order.delivery_fee : 5)),
       status: "pending",

@@ -74,7 +74,7 @@ export default function InstallPWA() {
         className="relative z-10 max-w-sm w-full space-y-8 text-center"
       >
         <div className="space-y-2">
-          <img src={logoParadaVip} alt="Parada do Açaí VIP" className="h-20 w-auto mx-auto mb-4 drop-shadow-lg" />
+          <img src={logoParadaVip} alt="Parada do Açaí Caucaia" className="h-20 w-auto mx-auto mb-4 drop-shadow-lg" />
           <h1 className="text-2xl font-bold text-foreground">Instalar Parada VIP</h1>
           <p className="text-muted-foreground text-sm">
             Instale o app no seu celular para uma experiência completa, sem precisar da App Store.

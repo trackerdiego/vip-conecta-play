@@ -34,7 +34,7 @@ export default function SplashScreen() {
       >
         <motion.img
           src={logoParadaVip}
-          alt="Parada do Açaí VIP"
+          alt="Parada do Açaí Caucaia"
           className="h-28 w-auto drop-shadow-lg"
         />
         <motion.p
