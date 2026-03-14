@@ -170,9 +170,9 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   let deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
   let deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
 
-  // If no coordinates from order, geocode the delivery address
-  if (!deliveryLat && !deliveryLng && deliveryAddress && order.delivery_type !== "table") {
-    const geocoded = await geocodeAddress(deliveryAddress);
+  // If no coordinates from order, geocode from order fields
+  if (!deliveryLat && !deliveryLng && order.delivery_type !== "table") {
+    const geocoded = await geocodeAddress(order);
     if (geocoded) {
       deliveryLat = geocoded.lat;
       deliveryLng = geocoded.lng;
