@@ -216,6 +216,7 @@ export default function DriverMap() {
             delivery={activeDelivery}
             onPickup={handlePickup}
             onDelivered={handleDelivered}
+            routeInfo={routeInfo}
           />
         )}
       </AnimatePresence>

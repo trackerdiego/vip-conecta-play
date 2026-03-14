@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, ExternalLink } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink, Clock, Route } from 'lucide-react';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { Button } from '@/components/ui/button';
 
@@ -7,6 +7,7 @@ interface ActiveDeliverySheetProps {
   delivery: any;
   onPickup: () => void;
   onDelivered: () => void;
+  routeInfo?: { distance: number; duration: number } | null;
 }
 
 function openNavigation(lat: number | null, lng: number | null, address: string) {
@@ -17,7 +18,16 @@ function openNavigation(lat: number | null, lng: number | null, address: string)
   }
 }
 
-export function ActiveDeliverySheet({ delivery, onPickup, onDelivered }: ActiveDeliverySheetProps) {
+function formatDistance(meters: number): string {
+  return meters >= 1000 ? `${(meters / 1000).toFixed(1)} km` : `${Math.round(meters)} m`;
+}
+
+function formatDuration(seconds: number): string {
+  const mins = Math.round(seconds / 60);
+  return mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)}h${mins % 60}min`;
+}
+
+export function ActiveDeliverySheet({ delivery, onPickup, onDelivered, routeInfo }: ActiveDeliverySheetProps) {
   const status = delivery.status;
   const isPickup = status === 'accepted';
 
@@ -38,7 +48,7 @@ export function ActiveDeliverySheet({ delivery, onPickup, onDelivered }: ActiveD
       className="absolute bottom-20 left-0 right-0 z-[1000] px-4"
     >
       <div className="bg-background rounded-3xl shadow-2xl border border-border p-5 max-w-md mx-auto">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${isPickup ? 'bg-brand-orange animate-pulse' : 'bg-brand-green'}`} />
             <h3 className="font-heading font-bold">
@@ -47,6 +57,20 @@ export function ActiveDeliverySheet({ delivery, onPickup, onDelivered }: ActiveD
           </div>
           <CurrencyDisplay value={Number(delivery.fare)} size="sm" className="text-brand-green" />
         </div>
+
+        {/* Route info */}
+        {routeInfo && (
+          <div className="flex items-center gap-4 mb-3 px-1">
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Route className="h-3.5 w-3.5" />
+              <span className="font-medium text-foreground">{formatDistance(routeInfo.distance)}</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span className="font-medium text-foreground">{formatDuration(routeInfo.duration)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Both addresses */}
         <div className="space-y-2 mb-4">
@@ -81,6 +105,7 @@ export function ActiveDeliverySheet({ delivery, onPickup, onDelivered }: ActiveD
             variant="outline"
             onClick={handleNavigate}
             className="h-14 w-14 rounded-2xl p-0"
+            title="Abrir no Google Maps"
           >
             <ExternalLink className="h-5 w-5" />
           </Button>
