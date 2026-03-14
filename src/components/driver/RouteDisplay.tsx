@@ -2,20 +2,36 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-routing-machine';
+import type { NavInstruction } from './NavigationBar';
 
 interface RouteDisplayProps {
   origin: [number, number];
   destination: [number, number];
   onRouteFound?: (distance: number, duration: number) => void;
+  onInstructionsFound?: (instructions: NavInstruction[]) => void;
+  followDriver?: boolean;
 }
 
-export function RouteDisplay({ origin, destination, onRouteFound }: RouteDisplayProps) {
+export function RouteDisplay({ origin, destination, onRouteFound, onInstructionsFound, followDriver }: RouteDisplayProps) {
   const map = useMap();
   const routingRef = useRef<L.Routing.Control | null>(null);
   const lastCalcRef = useRef<string>('');
 
   const onRouteFoundRef = useRef(onRouteFound);
+  const onInstructionsFoundRef = useRef(onInstructionsFound);
   useEffect(() => { onRouteFoundRef.current = onRouteFound; }, [onRouteFound]);
+  useEffect(() => { onInstructionsFoundRef.current = onInstructionsFound; }, [onInstructionsFound]);
+
+  // Fit bounds to show driver + destination
+  const fitRoute = useCallback(() => {
+    if (!followDriver) return;
+    if (origin[0] === 0 || destination[0] === 0) return;
+    const bounds = L.latLngBounds(
+      L.latLng(origin[0], origin[1]),
+      L.latLng(destination[0], destination[1])
+    );
+    map.fitBounds(bounds, { padding: [80, 60], maxZoom: 17, animate: true });
+  }, [map, origin, destination, followDriver]);
 
   const calcRoute = useCallback(() => {
     const key = `${origin[0].toFixed(4)},${origin[1].toFixed(4)}-${destination[0].toFixed(4)},${destination[1].toFixed(4)}`;
@@ -37,7 +53,7 @@ export function RouteDisplay({ origin, destination, onRouteFound }: RouteDisplay
         serviceUrl: 'https://router.project-osrm.org/route/v1',
       }),
       lineOptions: {
-        styles: [{ color: '#7c3aed', opacity: 0.8, weight: 5 }],
+        styles: [{ color: '#7c3aed', opacity: 0.9, weight: 6 }],
         extendToWaypoints: true,
         missingRouteTolerance: 10,
       },
@@ -51,8 +67,23 @@ export function RouteDisplay({ origin, destination, onRouteFound }: RouteDisplay
 
     control.on('routesfound', (e: any) => {
       const route = e.routes?.[0];
-      if (route && onRouteFoundRef.current) {
+      if (!route) return;
+
+      if (onRouteFoundRef.current) {
         onRouteFoundRef.current(route.summary.totalDistance, route.summary.totalTime);
+      }
+
+      // Extract turn-by-turn instructions
+      if (onInstructionsFoundRef.current && route.instructions) {
+        const navInstructions: NavInstruction[] = route.instructions
+          .filter((inst: any) => inst.distance > 0)
+          .map((inst: any) => ({
+            text: inst.text || '',
+            distance: inst.distance || 0,
+            type: inst.type || 'Straight',
+            road: inst.road || '',
+          }));
+        onInstructionsFoundRef.current(navInstructions);
       }
     });
 
@@ -65,17 +96,20 @@ export function RouteDisplay({ origin, destination, onRouteFound }: RouteDisplay
     if (origin[0] === 0 && origin[1] === 0) return;
     if (destination[0] === 0 && destination[1] === 0) return;
 
-    const timer = setTimeout(calcRoute, 500);
+    const timer = setTimeout(() => {
+      calcRoute();
+      fitRoute();
+    }, 500);
     return () => clearTimeout(timer);
-  }, [calcRoute]);
+  }, [calcRoute, fitRoute]);
 
-  // Periodic recalc every 30s
+  // Periodic recalc every 15s (more responsive)
   useEffect(() => {
     if (origin[0] === 0 || destination[0] === 0) return;
     const interval = setInterval(() => {
       lastCalcRef.current = ''; // force recalc
       calcRoute();
-    }, 30000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [calcRoute]);
 
