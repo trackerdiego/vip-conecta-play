@@ -24,7 +24,33 @@ export function useDeliveries() {
     },
   });
 
-  // Realtime subscription for pending deliveries
+  // Fetch existing pending deliveries on mount
+  const { data: existingPending } = useQuery({
+    queryKey: ['pending-deliveries', user?.id],
+    enabled: !!user,
+    refetchInterval: 15000, // Poll every 15s
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('deliveries')
+        .select('*')
+        .eq('status', 'pending')
+        .is('driver_id', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Show existing pending delivery as offer
+  useEffect(() => {
+    if (existingPending && !pendingOffer && !activeDelivery) {
+      setPendingOffer(existingPending);
+    }
+  }, [existingPending, activeDelivery]);
+
+  // Realtime subscription for NEW pending deliveries
   useEffect(() => {
     if (!user) return;
     const channel = supabase
