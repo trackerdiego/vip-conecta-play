@@ -8,6 +8,7 @@ import { BottomNav } from '@/components/shared/BottomNav';
 import { MapStyleSelector, useMapStyle } from '@/components/shared/MapStyleSelector';
 import { DeliveryOfferSheet } from '@/components/driver/DeliveryOfferSheet';
 import { ActiveDeliverySheet } from '@/components/driver/ActiveDeliverySheet';
+import { RouteDisplay } from '@/components/driver/RouteDisplay';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliveries } from '@/hooks/useDeliveries';
 import { useDriverLocation } from '@/hooks/useDriverLocation';
@@ -66,6 +67,7 @@ export default function DriverMap() {
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
   const [showOffer, setShowOffer] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const { style, setStyle, tileUrl } = useMapStyle();
   const prevOfferRef = useRef<string | null>(null);
 
@@ -153,6 +155,21 @@ export default function DriverMap() {
         <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
         <MapCenterUpdater center={position} />
+        {activeDelivery && (() => {
+          const isPickup = activeDelivery.status === 'accepted';
+          const destLat = isPickup ? activeDelivery.pickup_lat : activeDelivery.delivery_lat;
+          const destLng = isPickup ? activeDelivery.pickup_lng : activeDelivery.delivery_lng;
+          if (destLat && destLng) {
+            return (
+              <RouteDisplay
+                origin={position}
+                destination={[destLat, destLng]}
+                onRouteFound={(distance, duration) => setRouteInfo({ distance, duration })}
+              />
+            );
+          }
+          return null;
+        })()}
       </MapContainer>
 
       {/* Top Bar */}
@@ -199,6 +216,7 @@ export default function DriverMap() {
             delivery={activeDelivery}
             onPickup={handlePickup}
             onDelivered={handleDelivered}
+            routeInfo={routeInfo}
           />
         )}
       </AnimatePresence>
