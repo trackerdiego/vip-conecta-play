@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { Users, ShoppingBag, Wallet, Target, Gift } from 'lucide-react';
+import { Users, ShoppingBag, Wallet, Target, Gift, Percent } from 'lucide-react';
 
 export default function AdminOverview() {
   const { data: stats, isLoading } = useQuery({
