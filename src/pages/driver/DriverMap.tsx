@@ -259,18 +259,19 @@ export default function DriverMap() {
         {/* Markers for ALL active deliveries */}
         {activeDeliveries.map((d: any, i: number) => {
           const isCurrent = i === currentIndex;
+          const num = i + 1;
           return (
             <span key={d.id}>
-              {d.pickup_lat && d.pickup_lng && (
+              {d.pickup_lat && d.pickup_lng && d.status === 'accepted' && (
                 <Marker
                   position={[d.pickup_lat, d.pickup_lng]}
-                  icon={isCurrent && d.status === 'accepted' ? pickupIconActive : pickupIcon}
+                  icon={createNumberedIcon(num, 'pickup', isCurrent)}
                 />
               )}
               {d.delivery_lat && d.delivery_lng && (
                 <Marker
                   position={[d.delivery_lat, d.delivery_lng]}
-                  icon={isCurrent && d.status === 'picked_up' ? deliveryIconActive : deliveryIcon}
+                  icon={createNumberedIcon(num, 'delivery', isCurrent && d.status === 'picked_up')}
                 />
               )}
             </span>

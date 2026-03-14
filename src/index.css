@@ -151,6 +151,12 @@
   z-index: 0;
 }
 
+/* Numbered marker pulse */
+@keyframes marker-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
 /* Hide Leaflet Routing Machine itinerary */
 .leaflet-routing-container,
 .leaflet-routing-alt,
