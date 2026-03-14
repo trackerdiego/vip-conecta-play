@@ -72,7 +72,7 @@ export default function StoryCreator() {
 
       if (action === 'share' && navigator.share && navigator.canShare({ files: [file] })) {
         await navigator.share({
-          title: 'Parada do Açaí VIP',
+          title: 'Parada do Açaí Caucaia',
           text: `Peça pelo meu link! ${shareLink}`,
           files: [file],
         });

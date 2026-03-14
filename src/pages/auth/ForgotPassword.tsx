@@ -31,7 +31,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background via-accent/60 to-background px-6">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,hsl(263_70%_90%/0.4),transparent_60%)]" />
       <div className="relative z-10 w-full max-w-sm">
-        <img src={logoParadaVip} alt="Parada do Açaí VIP" className="h-20 w-auto mx-auto mb-6 drop-shadow-lg" />
+        <img src={logoParadaVip} alt="Parada do Açaí Caucaia" className="h-20 w-auto mx-auto mb-6 drop-shadow-lg" />
         <h1 className="font-heading text-2xl font-bold text-foreground text-center mb-2">Recuperar Senha</h1>
         <p className="text-sm text-muted-foreground text-center mb-8">
           Informe seu e-mail para receber o link de redefinição.

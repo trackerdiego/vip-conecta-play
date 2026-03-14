@@ -182,7 +182,7 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   const { data, error } = await supabaseAdmin.from("deliveries").upsert(
     {
       external_order_id: externalId,
-      pickup_address: "Parada do Açaí VIP",
+      pickup_address: "Parada do Açaí Caucaia",
       delivery_address: deliveryAddress,
       fare: (order.motoboy_remuneration > 0 ? order.motoboy_remuneration : (order.delivery_fee > 0 ? order.delivery_fee : 5)),
       status: "pending",
