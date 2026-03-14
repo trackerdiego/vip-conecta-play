@@ -147,8 +147,12 @@ export default function DriverMap() {
   };
 
   const toggleOnline = () => {
-    setIsOnline(!isOnline);
-    toast(isOnline ? 'Você está offline' : 'Você está online! Aguardando corridas...');
+    const newState = !isOnline;
+    setIsOnline(newState);
+    if (profile) {
+      setProfile({ ...profile, is_online: newState });
+    }
+    toast(newState ? 'Você está online! Aguardando corridas...' : 'Você está offline');
   };
 
   return (
