@@ -112,6 +112,7 @@ const App = () => (
           {/* Admin — Protected */}
           <Route element={<ProtectedRoute requiredRole="admin" />}>
             <Route path="/admin" element={<AdminOverview />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/missions" element={<AdminMissions />} />
             <Route path="/admin/prizes" element={<AdminPrizes />} />
             <Route path="/admin/commissions" element={<AdminCommissions />} />
