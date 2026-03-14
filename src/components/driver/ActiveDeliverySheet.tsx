@@ -47,64 +47,57 @@ export function ActiveDeliverySheet({ delivery, onPickup, onDelivered, routeInfo
       transition={{ type: 'spring', damping: 25 }}
       className="absolute bottom-20 left-0 right-0 z-[1000] px-4"
     >
-      <div className="bg-background rounded-3xl shadow-2xl border border-border p-5 max-w-md mx-auto">
+      <div className="bg-background rounded-3xl shadow-2xl border border-border p-4 max-w-md mx-auto">
+        {/* Compact header with status + fare + route info */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={`h-2 w-2 rounded-full ${isPickup ? 'bg-brand-orange animate-pulse' : 'bg-brand-green'}`} />
-            <h3 className="font-heading font-bold">
-              {isPickup ? 'A Caminho da Coleta' : 'Em Rota de Entrega'}
+            <h3 className="font-heading font-bold text-sm">
+              {isPickup ? 'Coleta' : 'Entrega'}
             </h3>
           </div>
-          <CurrencyDisplay value={Number(delivery.fare)} size="sm" className="text-brand-green" />
-        </div>
-
-        {/* Route info */}
-        {routeInfo && (
-          <div className="flex items-center gap-4 mb-3 px-1">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Route className="h-3.5 w-3.5" />
-              <span className="font-medium text-foreground">{formatDistance(routeInfo.distance)}</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              <span className="font-medium text-foreground">{formatDuration(routeInfo.duration)}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Both addresses */}
-        <div className="space-y-2 mb-4">
-          <div className={`rounded-xl p-3 ${isPickup ? 'bg-brand-purple/10 border border-brand-purple/20' : 'bg-muted/50'}`}>
-            <div className="flex items-start gap-2">
-              <MapPin className={`h-4 w-4 mt-0.5 shrink-0 ${isPickup ? 'text-brand-purple' : 'text-muted-foreground'}`} />
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Coleta</p>
-                <p className="text-sm font-medium">{delivery.pickup_address}</p>
+          <div className="flex items-center gap-3">
+            {routeInfo && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <Route className="h-3 w-3" />
+                  <span className="font-semibold text-foreground">{formatDistance(routeInfo.distance)}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span className="font-semibold text-foreground">{formatDuration(routeInfo.duration)}</span>
+                </span>
               </div>
-            </div>
-          </div>
-          <div className={`rounded-xl p-3 ${!isPickup ? 'bg-brand-green/10 border border-brand-green/20' : 'bg-muted/50'}`}>
-            <div className="flex items-start gap-2">
-              <Navigation className={`h-4 w-4 mt-0.5 shrink-0 ${!isPickup ? 'text-brand-green' : 'text-muted-foreground'}`} />
-              <div>
-                <p className="text-[10px] font-semibold uppercase text-muted-foreground">Entrega</p>
-                <p className="text-sm font-medium">{delivery.delivery_address}</p>
-              </div>
-            </div>
+            )}
+            <CurrencyDisplay value={Number(delivery.fare)} size="sm" className="text-brand-green" />
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto] gap-3">
+        {/* Compact address */}
+        <div className="rounded-xl p-2.5 mb-3 bg-muted/50">
+          <div className="flex items-center gap-2">
+            {isPickup ? (
+              <MapPin className="h-4 w-4 shrink-0 text-brand-purple" />
+            ) : (
+              <Navigation className="h-4 w-4 shrink-0 text-brand-green" />
+            )}
+            <p className="text-sm font-medium truncate">
+              {isPickup ? delivery.pickup_address : delivery.delivery_address}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[1fr_auto] gap-2">
           <Button
             onClick={isPickup ? onPickup : onDelivered}
-            className="h-14 rounded-2xl bg-brand-green hover:bg-brand-green/90 text-primary-foreground font-heading text-base font-bold"
+            className="h-12 rounded-2xl bg-brand-green hover:bg-brand-green/90 text-primary-foreground font-heading text-sm font-bold"
           >
             {isPickup ? '📍 Cheguei na Coleta' : '✅ Entrega Concluída'}
           </Button>
           <Button
             variant="outline"
             onClick={handleNavigate}
-            className="h-14 w-14 rounded-2xl p-0"
+            className="h-12 w-12 rounded-2xl p-0"
             title="Abrir no Google Maps"
           >
             <ExternalLink className="h-5 w-5" />

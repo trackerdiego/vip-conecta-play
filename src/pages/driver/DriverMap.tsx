@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { Crosshair } from 'lucide-react';
 import { DriverStatusPill } from '@/components/shared/DriverStatusPill';
 import { CurrencyDisplay } from '@/components/shared/CurrencyDisplay';
 import { BottomNav } from '@/components/shared/BottomNav';
@@ -9,25 +10,104 @@ import { MapStyleSelector, useMapStyle } from '@/components/shared/MapStyleSelec
 import { DeliveryOfferSheet } from '@/components/driver/DeliveryOfferSheet';
 import { ActiveDeliverySheet } from '@/components/driver/ActiveDeliverySheet';
 import { RouteDisplay } from '@/components/driver/RouteDisplay';
+import { NavigationBar, type NavInstruction } from '@/components/driver/NavigationBar';
 import { useAuthStore } from '@/stores/authStore';
 import { useDeliveries } from '@/hooks/useDeliveries';
 import { useDriverLocation } from '@/hooks/useDriverLocation';
 import { useWallet } from '@/hooks/useWallet';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import 'leaflet/dist/leaflet.css';
 
+// Icons
 const driverIcon = L.divIcon({
-  html: '<div style="font-size:24px">🛵</div>',
+  html: '<div style="font-size:28px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3))">🛵</div>',
   className: 'bg-transparent',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
 });
 
+const pickupIcon = L.divIcon({
+  html: '<div style="font-size:24px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">📍</div>',
+  className: 'bg-transparent',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+});
+
+const deliveryIcon = L.divIcon({
+  html: '<div style="font-size:24px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))">🏠</div>',
+  className: 'bg-transparent',
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+});
+
+const pickupIconActive = L.divIcon({
+  html: '<div style="font-size:32px;filter:drop-shadow(0 2px 8px rgba(249,115,22,0.6));animation:pulse 2s infinite">📍</div>',
+  className: 'bg-transparent',
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+});
+
+const deliveryIconActive = L.divIcon({
+  html: '<div style="font-size:32px;filter:drop-shadow(0 2px 8px rgba(34,197,94,0.6));animation:pulse 2s infinite">🏠</div>',
+  className: 'bg-transparent',
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+});
+
+// Simple map center for idle mode
 function MapCenterUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.setView(center, map.getZoom());
   }, [center, map]);
+  return null;
+}
+
+// Navigation follower - keeps driver + destination in view
+function NavigationFollower({ driverPos, destPos, enabled }: { driverPos: [number, number]; destPos: [number, number] | null; enabled: boolean }) {
+  const map = useMap();
+  const userInteractedRef = useRef(false);
+  const lastFitRef = useRef('');
+
+  // Detect manual interaction
+  useEffect(() => {
+    if (!enabled) return;
+    const onMove = () => { userInteractedRef.current = true; };
+    map.on('dragstart', onMove);
+    return () => { map.off('dragstart', onMove); };
+  }, [map, enabled]);
+
+  // Reset interaction flag via recenter
+  const recenter = useCallback(() => {
+    userInteractedRef.current = false;
+  }, []);
+
+  // Auto-fit
+  useEffect(() => {
+    if (!enabled || userInteractedRef.current) return;
+    if (driverPos[0] === 0) return;
+
+    const key = `${driverPos[0].toFixed(3)},${driverPos[1].toFixed(3)}`;
+    if (key === lastFitRef.current) return;
+    lastFitRef.current = key;
+
+    if (destPos) {
+      const bounds = L.latLngBounds(
+        L.latLng(driverPos[0], driverPos[1]),
+        L.latLng(destPos[0], destPos[1])
+      );
+      map.fitBounds(bounds, { padding: [100, 80], maxZoom: 17, animate: true });
+    } else {
+      map.setView(driverPos, 16, { animate: true });
+    }
+  }, [map, driverPos, destPos, enabled]);
+
+  // Expose recenter via ref
+  useEffect(() => {
+    (map as any).__recenterNav = recenter;
+  }, [map, recenter]);
+
   return null;
 }
 
@@ -45,7 +125,6 @@ function playNotificationBeep() {
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + 0.5);
-    // Play a second beep
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.connect(gain2);
@@ -56,9 +135,7 @@ function playNotificationBeep() {
     gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.1);
     osc2.start(ctx.currentTime + 0.6);
     osc2.stop(ctx.currentTime + 1.1);
-  } catch {
-    // Audio not available
-  }
+  } catch { /* Audio not available */ }
 }
 
 export default function DriverMap() {
@@ -69,14 +146,14 @@ export default function DriverMap() {
   const [countdown, setCountdown] = useState(30);
   const [showOffer, setShowOffer] = useState(false);
   const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
+  const [navInstructions, setNavInstructions] = useState<NavInstruction[]>([]);
   const { style, setStyle, tileUrl } = useMapStyle();
   const prevOfferRef = useRef<string | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   const { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus } = useDeliveries();
   const { balance } = useWallet();
   useDriverLocation(isOnline);
-
-  // isOnline is initialized from profile and managed locally — no re-sync from profile
 
   // Geolocation
   useEffect(() => {
@@ -84,7 +161,7 @@ export default function DriverMap() {
     const id = navigator.geolocation.watchPosition(
       (pos) => setPosition([pos.coords.latitude, pos.coords.longitude]),
       null,
-      { enableHighAccuracy: true, maximumAge: 10000 }
+      { enableHighAccuracy: true, maximumAge: 5000 }
     );
     return () => navigator.geolocation.clearWatch(id);
   }, []);
@@ -94,7 +171,6 @@ export default function DriverMap() {
     if (pendingOffer && isOnline && !activeDelivery) {
       setShowOffer(true);
       setCountdown(30);
-      // Play sound only for new offers
       if (prevOfferRef.current !== pendingOffer.id) {
         prevOfferRef.current = pendingOffer.id;
         playNotificationBeep();
@@ -132,12 +208,16 @@ export default function DriverMap() {
   const handlePickup = () => {
     if (!activeDelivery) return;
     updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'picked_up' });
+    setNavInstructions([]);
+    setRouteInfo(null);
     toast.success('Coleta confirmada! Siga para a entrega.');
   };
 
   const handleDelivered = () => {
     if (!activeDelivery) return;
     updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'delivered' });
+    setNavInstructions([]);
+    setRouteInfo(null);
     toast.success(`R$ ${Number(activeDelivery.fare).toFixed(2)} creditados! 🎉`);
   };
 
@@ -150,6 +230,18 @@ export default function DriverMap() {
     toast(newState ? 'Você está online! Aguardando corridas...' : 'Você está offline');
   };
 
+  const handleRecenter = () => {
+    if (mapRef.current && (mapRef.current as any).__recenterNav) {
+      (mapRef.current as any).__recenterNav();
+    }
+  };
+
+  // Compute destination for route/markers
+  const isPickup = activeDelivery?.status === 'accepted';
+  const destLat = activeDelivery ? (isPickup ? activeDelivery.pickup_lat : activeDelivery.delivery_lat) : null;
+  const destLng = activeDelivery ? (isPickup ? activeDelivery.pickup_lng : activeDelivery.delivery_lng) : null;
+  const destPos: [number, number] | null = destLat && destLng ? [destLat, destLng] : null;
+
   return (
     <div className="fixed inset-0 bg-background">
       <MapContainer
@@ -158,26 +250,52 @@ export default function DriverMap() {
         style={{ height: '100%', width: '100%' }}
         zoomControl={false}
         attributionControl={false}
+        ref={mapRef}
       >
         <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
-        <MapCenterUpdater center={position} />
-        {activeDelivery && (() => {
-          const isPickup = activeDelivery.status === 'accepted';
-          const destLat = isPickup ? activeDelivery.pickup_lat : activeDelivery.delivery_lat;
-          const destLng = isPickup ? activeDelivery.pickup_lng : activeDelivery.delivery_lng;
-          if (destLat && destLng) {
-            return (
-              <RouteDisplay
-                origin={position}
-                destination={[destLat, destLng]}
-                onRouteFound={(distance, duration) => setRouteInfo({ distance, duration })}
-              />
-            );
-          }
-          return null;
-        })()}
+
+        {/* Destination markers */}
+        {activeDelivery && activeDelivery.pickup_lat && activeDelivery.pickup_lng && (
+          <Marker
+            position={[activeDelivery.pickup_lat, activeDelivery.pickup_lng]}
+            icon={isPickup ? pickupIconActive : pickupIcon}
+          />
+        )}
+        {activeDelivery && activeDelivery.delivery_lat && activeDelivery.delivery_lng && (
+          <Marker
+            position={[activeDelivery.delivery_lat, activeDelivery.delivery_lng]}
+            icon={!isPickup ? deliveryIconActive : deliveryIcon}
+          />
+        )}
+
+        {/* Navigation follower or idle center */}
+        {activeDelivery ? (
+          <NavigationFollower driverPos={position} destPos={destPos} enabled={true} />
+        ) : (
+          <MapCenterUpdater center={position} />
+        )}
+
+        {/* Route display */}
+        {activeDelivery && destPos && (
+          <RouteDisplay
+            origin={position}
+            destination={destPos}
+            onRouteFound={(distance, duration) => setRouteInfo({ distance, duration })}
+            onInstructionsFound={setNavInstructions}
+            followDriver={true}
+          />
+        )}
       </MapContainer>
+
+      {/* Navigation Bar - turn-by-turn */}
+      {activeDelivery && (
+        <NavigationBar
+          instruction={navInstructions[0] || null}
+          isPickup={!!isPickup}
+          destinationLabel={isPickup ? activeDelivery.pickup_address : activeDelivery.delivery_address}
+        />
+      )}
 
       {/* Top Bar */}
       <div className="absolute top-4 left-0 right-0 z-[1000] flex justify-center px-4">
@@ -193,6 +311,21 @@ export default function DriverMap() {
 
       {/* Map Style Selector */}
       <MapStyleSelector current={style} onChange={setStyle} />
+
+      {/* Recenter button - only during active delivery */}
+      {activeDelivery && (
+        <div className="absolute bottom-44 right-4 z-[1000]">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRecenter}
+            className="h-10 w-10 rounded-full bg-background shadow-lg"
+            title="Recentralizar"
+          >
+            <Crosshair className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Earnings mini card */}
       {isOnline && !activeDelivery && !showOffer && (
