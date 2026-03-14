@@ -41,6 +41,7 @@ export default function AdminOverview() {
     { label: 'Saques Pendentes', value: stats ? `${stats.pendingWithdrawals} (R$ ${stats.pendingAmount.toFixed(2).replace('.', ',')})` : null, icon: Wallet, href: null },
     { label: 'Missões Ativas', value: stats?.totalMissions, icon: Target, href: '/admin/missions' },
     { label: 'Prêmios Ativos', value: stats?.totalPrizes, icon: Gift, href: '/admin/prizes' },
+    { label: 'Comissões por Nível', value: '4 níveis', icon: Percent, href: '/admin/commissions' },
   ];
 
   return (
