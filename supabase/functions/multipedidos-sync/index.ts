@@ -14,9 +14,9 @@ const MULTIPEDIDOS_API = "https://api.multipedidos.com.br/v2";
 
 // Mapeamento de status interno → Multipedidos
 const STATUS_MAP: Record<string, string> = {
-  accepted: "dispatched",
-  picked_up: "collected",
-  delivered: "delivered",
+  accepted: "APPROVED",
+  picked_up: "SENT",
+  delivered: "OVER",
 };
 
 function getSupabaseAdmin() {
