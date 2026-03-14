@@ -152,6 +152,12 @@
 }
 
 /* Hide Leaflet Routing Machine itinerary */
-.leaflet-routing-container {
+.leaflet-routing-container,
+.leaflet-routing-alt,
+.leaflet-routing-error,
+.leaflet-routing-geocoders {
   display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
 }
