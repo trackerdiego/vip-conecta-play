@@ -76,6 +76,13 @@ export default function DriverMap() {
   const { balance } = useWallet();
   useDriverLocation(isOnline);
 
+  // Sync isOnline with profile store (persists across tab navigation)
+  useEffect(() => {
+    if (profile?.is_online !== undefined && profile.is_online !== isOnline) {
+      setIsOnline(profile.is_online);
+    }
+  }, [profile?.is_online]);
+
   // Geolocation
   useEffect(() => {
     if (!navigator.geolocation) return;
