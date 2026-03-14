@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
-import { Users, ShoppingBag, Wallet, Target, Gift } from 'lucide-react';
+import { Users, ShoppingBag, Wallet, Target, Gift, Percent } from 'lucide-react';
 
 export default function AdminOverview() {
   const { data: stats, isLoading } = useQuery({
@@ -41,6 +41,7 @@ export default function AdminOverview() {
     { label: 'Saques Pendentes', value: stats ? `${stats.pendingWithdrawals} (R$ ${stats.pendingAmount.toFixed(2).replace('.', ',')})` : null, icon: Wallet, href: null },
     { label: 'Missões Ativas', value: stats?.totalMissions, icon: Target, href: '/admin/missions' },
     { label: 'Prêmios Ativos', value: stats?.totalPrizes, icon: Gift, href: '/admin/prizes' },
+    { label: 'Comissões por Nível', value: '4 níveis', icon: Percent, href: '/admin/commissions' },
   ];
 
   return (
@@ -67,12 +68,15 @@ export default function AdminOverview() {
           ))}
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           <Link to="/admin/missions" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             Gerenciar Missões
           </Link>
           <Link to="/admin/prizes" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             Gerenciar Prêmios
+          </Link>
+          <Link to="/admin/commissions" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            Gerenciar Comissões
           </Link>
         </div>
       </div>
