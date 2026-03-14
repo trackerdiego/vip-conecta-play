@@ -24,6 +24,7 @@ const MP_STATUS_TO_ORDER: Record<string, string> = {
   CREATED: "received",
   APPROVED: "preparing",
   DONE: "ready",
+  SENT: "dispatched",
   CANCELED: "canceled",
   SCHEDULED: "received",
 };
@@ -373,7 +374,7 @@ async function handleWebhook(body: any) {
     const externalId = String(order.id);
     const orderTotal = order.total || 0;
     const refCode = extractReferralCode(order);
-    const mpStatus = order.status || "CREATED";
+    const mpStatus = order.order_status || order.status || "CREATED";
 
     console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}, mpStatus=${mpStatus}`);
 
@@ -392,9 +393,9 @@ async function handleWebhook(body: any) {
       console.warn(`Order ${externalId}: no referral code found`);
     }
 
-    // If status is DONE (ready for pickup by motoboy), dispatch to drivers
+    // If status is DONE or SENT (ready for pickup by motoboy), dispatch to drivers
     let dispatchResult = null;
-    if (mpStatus === "DONE") {
+    if (mpStatus === "DONE" || mpStatus === "SENT") {
       dispatchResult = await dispatchOrder(externalId, supabaseAdmin);
       console.log(`Dispatch result for ${externalId}: ${JSON.stringify(dispatchResult)}`);
     }
