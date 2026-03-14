@@ -6,9 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Coordenadas fixas da Parada do Açaí VIP (Fortaleza-CE)
-const PICKUP_LAT = -3.7319;
-const PICKUP_LNG = -38.5267;
+// Coordenadas fixas da Parada do Açaí Caucaia (Caucaia-CE)
+const PICKUP_LAT = -3.7373;
+const PICKUP_LNG = -38.6531;
 
 function getSupabaseAdmin() {
   return createClient(
