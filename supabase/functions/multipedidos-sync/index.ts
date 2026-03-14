@@ -81,35 +81,61 @@ async function creditReferral(
 }
 
 /**
- * Geocode an address using Nominatim (OpenStreetMap).
- * Returns { lat, lng } or null if not found.
+ * Extract clean geocoding fields from order data.
  */
-async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+function buildGeoQuery(order: any): { street: string; city: string; state: string } {
+  const street = order.address || order.client?.street || "";
+  const number = order.street_number || order.client?.street_number || "";
+  const city = (order.city && order.city.trim()) || order.client?.city || "Fortaleza";
+
+  const streetFull = street && number ? `${street}, ${number}` : street;
+
+  return { street: streetFull, city, state: "Ceará" };
+}
+
+/**
+ * Geocode using Nominatim structured query, with fallback to free-form.
+ */
+async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } | null> {
+  const { street, city, state } = buildGeoQuery(order);
+  if (!street) return null;
+
+  const headers = { "User-Agent": "ParadaDoAcaiVIP/1.0" };
+
   try {
-    // Append ", Fortaleza, CE, Brasil" for better accuracy
-    const query = `${address}, Fortaleza, CE, Brasil`;
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
-    
-    const res = await fetch(url, {
-      headers: { "User-Agent": "ParadaDoAcaiVIP/1.0" },
-    });
-    
-    if (!res.ok) {
-      console.warn(`Nominatim returned ${res.status} for: ${query}`);
-      return null;
+    // Attempt 1: structured query
+    const structuredUrl = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&country=Brazil&limit=1`;
+    console.log(`Geocode structured: street="${street}" city="${city}"`);
+
+    let res = await fetch(structuredUrl, { headers });
+    if (res.ok) {
+      const results = await res.json();
+      if (results.length > 0) {
+        const { lat, lon } = results[0];
+        console.log(`Geocoded (structured) → ${lat}, ${lon}`);
+        return { lat: parseFloat(lat), lng: parseFloat(lon) };
+      }
     }
-    
-    const results = await res.json();
-    if (results.length > 0) {
-      const { lat, lon } = results[0];
-      console.log(`Geocoded "${query}" → ${lat}, ${lon}`);
-      return { lat: parseFloat(lat), lng: parseFloat(lon) };
+
+    // Attempt 2: simple free-form with just street + city
+    const freeQuery = `${street}, ${city}, CE, Brasil`;
+    const freeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(freeQuery)}&limit=1`;
+    console.log(`Geocode fallback: "${freeQuery}"`);
+
+    res = await fetch(freeUrl, { headers });
+    if (res.ok) {
+      const results = await res.json();
+      if (results.length > 0) {
+        const { lat, lon } = results[0];
+        console.log(`Geocoded (fallback) → ${lat}, ${lon}`);
+        return { lat: parseFloat(lat), lng: parseFloat(lon) };
+      }
     }
-    
-    console.warn(`No geocoding results for: ${query}`);
+
+    console.warn(`No geocoding results for: ${street}, ${city}`);
     return null;
   } catch (err) {
-    console.error(`Geocoding error for "${address}":`, err);
+    console.error(`Geocoding error:`, err);
     return null;
   }
 }
@@ -144,9 +170,9 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   let deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
   let deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
 
-  // If no coordinates from order, geocode the delivery address
-  if (!deliveryLat && !deliveryLng && deliveryAddress && order.delivery_type !== "table") {
-    const geocoded = await geocodeAddress(deliveryAddress);
+  // If no coordinates from order, geocode from order fields
+  if (!deliveryLat && !deliveryLng && order.delivery_type !== "table") {
+    const geocoded = await geocodeAddress(order);
     if (geocoded) {
       deliveryLat = geocoded.lat;
       deliveryLng = geocoded.lng;
