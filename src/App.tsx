@@ -105,6 +105,7 @@ const App = () => (
             <Route path="/driver/history" element={<DriverHistory />} />
             <Route path="/driver/earnings" element={<DriverEarnings />} />
             <Route path="/driver/profile" element={<DriverProfile />} />
+            <Route path="/driver/personal-data" element={<DriverPersonalData />} />
           </Route>
 
           {/* Admin — Protected */}
