@@ -374,7 +374,7 @@ async function handleWebhook(body: any) {
     const externalId = String(order.id);
     const orderTotal = order.total || 0;
     const refCode = extractReferralCode(order);
-    const mpStatus = order.status || "CREATED";
+    const mpStatus = order.order_status || order.status || "CREATED";
 
     console.log(`Processing order ${externalId}: total=${orderTotal}, refCode=${refCode}, mpStatus=${mpStatus}`);
 
