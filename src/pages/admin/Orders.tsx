@@ -54,12 +54,6 @@ export default function AdminOrders() {
 
   const dispatchMutation = useMutation({
     mutationFn: async (externalOrderId: string) => {
-      const { data, error } = await supabase.functions.invoke('multipedidos-sync', {
-        body: { external_order_id: externalOrderId },
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      // Construct URL with action param
       const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const res = await fetch(
         `https://${projectId}.supabase.co/functions/v1/multipedidos-sync?action=dispatch`,
