@@ -24,6 +24,7 @@ const MP_STATUS_TO_ORDER: Record<string, string> = {
   CREATED: "received",
   APPROVED: "preparing",
   DONE: "ready",
+  SENT: "dispatched",
   CANCELED: "canceled",
   SCHEDULED: "received",
 };
