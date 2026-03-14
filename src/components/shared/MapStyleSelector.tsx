@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Layers } from 'lucide-react';
 import { LOCATIONIQ_KEY } from '@/hooks/useReverseGeocode';
 
-export type MapStyle = 'streets' | 'dark' | 'light' | 'ocean';
+export type MapStyle = 'streets' | 'dark' | 'light' | 'ocean' | 'satellite';
 
 interface MapStyleOption {
   id: MapStyle;
@@ -16,6 +16,7 @@ const MAP_STYLES: MapStyleOption[] = [
   { id: 'dark', label: 'Escuro', emoji: '🌙' },
   { id: 'light', label: 'Claro', emoji: '☀️' },
   { id: 'ocean', label: 'Terreno', emoji: '🌊' },
+  { id: 'satellite', label: 'Satélite', emoji: '🛰️' },
 ];
 
 const STORAGE_KEY = 'map-style';
