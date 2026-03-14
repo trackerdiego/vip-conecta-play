@@ -81,37 +81,53 @@ async function creditReferral(
   return saleId;
 }
 
+function buildDeliveryAddress(order: any): string {
+  // Multipedidos sends address fields at root level, not nested
+  const street = order.address || order.client?.street || "";
+  const number = order.street_number || order.client?.street_number || "";
+  const neighborhood = order.bairro || order.client?.bairro || "";
+  const city = order.city || order.client?.city || "";
+  const complement = order.complemento || order.client?.complemento || "";
+  const ref = order.address_ref || order.client?.referral || "";
+
+  const parts = [
+    street && number ? `${street}, ${number}` : street || number,
+    complement,
+    neighborhood,
+    city,
+  ].filter(Boolean);
+
+  const addr = parts.join(" - ");
+  if (ref) return `${addr} (Ref: ${ref})`;
+  return addr || "Endereço não informado";
+}
+
 async function createDelivery(order: any, externalId: string, supabaseAdmin: any) {
-  const { data: existing } = await supabaseAdmin
-    .from("deliveries")
-    .select("id")
-    .eq("external_order_id", externalId)
-    .maybeSingle();
+  const deliveryAddress = order.delivery_type === "table"
+    ? `Mesa: ${order.table || "N/A"}`
+    : buildDeliveryAddress(order);
 
-  if (existing) return { skipped: true, id: externalId };
+  const clientCoords = order.client?.coordinates;
+  const deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
+  const deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
 
-  const deliveryAddress = order.address
-    ? `${order.address.street || ""}, ${order.address.number || ""} - ${order.address.neighborhood || ""}, ${order.address.city || ""}`
-    : order.delivery_type === "table"
-      ? `Mesa: ${order.table || "N/A"}`
-      : "Endereço não informado";
-
-  const { error } = await supabaseAdmin.from("deliveries").insert({
-    external_order_id: externalId,
-    pickup_address: "Parada do Açaí VIP",
-    delivery_address: deliveryAddress,
-    fare: order.total || 0,
-    status: "pending",
-    offered_at: new Date().toISOString(),
-    pickup_lat: order.pickup_lat || null,
-    pickup_lng: order.pickup_lng || null,
-    delivery_lat: order.address?.latitude || null,
-    delivery_lng: order.address?.longitude || null,
-    multipedidos_order_data: order,
-  });
+  const { data, error } = await supabaseAdmin.from("deliveries").upsert(
+    {
+      external_order_id: externalId,
+      pickup_address: "Parada do Açaí VIP",
+      delivery_address: deliveryAddress,
+      fare: order.delivery_fee || order.motoboy_remuneration || 5,
+      status: "pending",
+      offered_at: new Date().toISOString(),
+      delivery_lat: deliveryLat,
+      delivery_lng: deliveryLng,
+      multipedidos_order_data: order,
+    },
+    { onConflict: "external_order_id", ignoreDuplicates: true },
+  );
 
   if (error) throw error;
-  return { created: true, id: externalId };
+  return { created: !data ? false : true, id: externalId };
 }
 
 async function handleWebhook(body: any) {
