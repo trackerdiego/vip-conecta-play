@@ -14,35 +14,38 @@ interface RouteDisplayProps {
 
 export function RouteDisplay({ origin, destination, onRouteFound, onInstructionsFound, followDriver }: RouteDisplayProps) {
   const map = useMap();
-  const routingRef = useRef<L.Routing.Control | null>(null);
-  const lastCalcRef = useRef<string>('');
+  const routingRef = useRef<any>(null);
+  const lastKeyRef = useRef<string>('');
 
   const onRouteFoundRef = useRef(onRouteFound);
   const onInstructionsFoundRef = useRef(onInstructionsFound);
   useEffect(() => { onRouteFoundRef.current = onRouteFound; }, [onRouteFound]);
   useEffect(() => { onInstructionsFoundRef.current = onInstructionsFound; }, [onInstructionsFound]);
 
-  // Fit bounds to show driver + destination
-  const fitRoute = useCallback(() => {
-    if (!followDriver) return;
-    if (origin[0] === 0 || destination[0] === 0) return;
-    const bounds = L.latLngBounds(
-      L.latLng(origin[0], origin[1]),
-      L.latLng(destination[0], destination[1])
-    );
-    map.fitBounds(bounds, { padding: [80, 60], maxZoom: 17, animate: true });
-  }, [map, origin, destination, followDriver]);
+  const handleRoutesFound = useCallback((e: any) => {
+    const route = e.routes?.[0];
+    if (!route) return;
 
-  const calcRoute = useCallback(() => {
-    const key = `${origin[0].toFixed(4)},${origin[1].toFixed(4)}-${destination[0].toFixed(4)},${destination[1].toFixed(4)}`;
-    if (key === lastCalcRef.current) return;
-    lastCalcRef.current = key;
-
-    // Remove previous
-    if (routingRef.current) {
-      try { map.removeControl(routingRef.current); } catch { /* */ }
-      routingRef.current = null;
+    if (onRouteFoundRef.current) {
+      onRouteFoundRef.current(route.summary.totalDistance, route.summary.totalTime);
     }
+
+    if (onInstructionsFoundRef.current && route.instructions) {
+      const navInstructions: NavInstruction[] = route.instructions
+        .filter((inst: any) => inst.distance > 0)
+        .map((inst: any) => ({
+          text: inst.text || '',
+          distance: inst.distance || 0,
+          type: inst.type || 'Straight',
+          road: inst.road || '',
+        }));
+      onInstructionsFoundRef.current(navInstructions);
+    }
+  }, []);
+
+  // Create routing control once, then reuse via setWaypoints
+  const ensureControl = useCallback(() => {
+    if (routingRef.current) return;
 
     const control = L.Routing.control({
       waypoints: [
@@ -65,59 +68,68 @@ export function RouteDisplay({ origin, destination, onRouteFound, onInstructions
       createMarker: () => null,
     });
 
-    control.on('routesfound', (e: any) => {
-      const route = e.routes?.[0];
-      if (!route) return;
-
-      if (onRouteFoundRef.current) {
-        onRouteFoundRef.current(route.summary.totalDistance, route.summary.totalTime);
-      }
-
-      // Extract turn-by-turn instructions
-      if (onInstructionsFoundRef.current && route.instructions) {
-        const navInstructions: NavInstruction[] = route.instructions
-          .filter((inst: any) => inst.distance > 0)
-          .map((inst: any) => ({
-            text: inst.text || '',
-            distance: inst.distance || 0,
-            type: inst.type || 'Straight',
-            road: inst.road || '',
-          }));
-        onInstructionsFoundRef.current(navInstructions);
-      }
-    });
-
+    control.on('routesfound', handleRoutesFound);
     control.addTo(map);
     routingRef.current = control;
-  }, [origin, destination, map]);
+  }, [map, handleRoutesFound, origin, destination]);
 
-  // Recalc on mount and when origin/destination change (debounced)
+  // Update waypoints on existing control (no flicker)
+  const updateWaypoints = useCallback(() => {
+    if (!routingRef.current) return;
+    routingRef.current.setWaypoints([
+      L.latLng(origin[0], origin[1]),
+      L.latLng(destination[0], destination[1]),
+    ]);
+  }, [origin, destination]);
+
+  // Fit bounds to show driver + destination
+  const fitRoute = useCallback(() => {
+    if (!followDriver) return;
+    if (origin[0] === 0 || destination[0] === 0) return;
+    const bounds = L.latLngBounds(
+      L.latLng(origin[0], origin[1]),
+      L.latLng(destination[0], destination[1])
+    );
+    map.fitBounds(bounds, { padding: [80, 60], maxZoom: 17, animate: true });
+  }, [map, origin, destination, followDriver]);
+
+  // React to origin/destination changes with debounce + reduced sensitivity
   useEffect(() => {
     if (origin[0] === 0 && origin[1] === 0) return;
     if (destination[0] === 0 && destination[1] === 0) return;
 
-    const timer = setTimeout(() => {
-      calcRoute();
-      fitRoute();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [calcRoute, fitRoute]);
+    const key = `${origin[0].toFixed(3)},${origin[1].toFixed(3)}-${destination[0].toFixed(3)},${destination[1].toFixed(3)}`;
+    if (key === lastKeyRef.current) return;
+    lastKeyRef.current = key;
 
-  // Periodic recalc every 15s (more responsive)
+    const timer = setTimeout(() => {
+      if (!routingRef.current) {
+        ensureControl();
+      } else {
+        updateWaypoints();
+      }
+      fitRoute();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [origin, destination, ensureControl, updateWaypoints, fitRoute]);
+
+  // Periodic refresh every 15s using setWaypoints
   useEffect(() => {
     if (origin[0] === 0 || destination[0] === 0) return;
     const interval = setInterval(() => {
-      lastCalcRef.current = ''; // force recalc
-      calcRoute();
+      if (routingRef.current) {
+        updateWaypoints();
+      }
     }, 15000);
     return () => clearInterval(interval);
-  }, [calcRoute]);
+  }, [origin, destination, updateWaypoints]);
 
-  // Cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (routingRef.current) {
         try { map.removeControl(routingRef.current); } catch { /* */ }
+        routingRef.current = null;
       }
     };
   }, [map]);
