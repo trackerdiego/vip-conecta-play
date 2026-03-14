@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
 
+const MAX_ACTIVE_DELIVERIES = 5;
+
 /**
  * Fire-and-forget: notify Multipedidos about a status change.
- * Never blocks the UI — errors are logged but ignored.
  */
 function syncStatusToMultipedidos(externalOrderId: string, status: string) {
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -21,13 +22,16 @@ function syncStatusToMultipedidos(externalOrderId: string, status: string) {
   ).catch((err) => console.warn('Multipedidos sync failed (non-blocking):', err));
 }
 
+export type DeliveryPhase = 'collecting' | 'delivering';
+
 export function useDeliveries() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [pendingOffer, setPendingOffer] = useState<any>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Active delivery assigned to this driver
-  const { data: activeDelivery, isLoading } = useQuery({
+  // Active deliveries assigned to this driver (array)
+  const { data: activeDeliveries = [], isLoading } = useQuery({
     queryKey: ['active-delivery', user?.id],
     enabled: !!user,
     queryFn: async () => {
@@ -36,11 +40,31 @@ export function useDeliveries() {
         .select('*')
         .eq('driver_id', user!.id)
         .in('status', ['accepted', 'picked_up'])
-        .maybeSingle();
+        .order('accepted_at', { ascending: true });
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
   });
+
+  // Determine phase
+  const phase: DeliveryPhase = activeDeliveries.some((d: any) => d.status === 'accepted')
+    ? 'collecting'
+    : 'delivering';
+
+  // Keep index in bounds
+  const safeIndex = Math.min(currentIndex, Math.max(0, activeDeliveries.length - 1));
+  const currentDelivery = activeDeliveries[safeIndex] ?? null;
+
+  const nextDelivery = useCallback(() => {
+    setCurrentIndex((i) => Math.min(i + 1, activeDeliveries.length - 1));
+  }, [activeDeliveries.length]);
+
+  const setDeliveryIndex = useCallback((i: number) => {
+    setCurrentIndex(i);
+  }, []);
+
+  // Can accept more?
+  const canAcceptMore = activeDeliveries.length < MAX_ACTIVE_DELIVERIES;
 
   // Fetch existing pending deliveries on mount
   const { data: existingPending } = useQuery({
@@ -61,12 +85,12 @@ export function useDeliveries() {
     },
   });
 
-  // Show existing pending delivery as offer
+  // Show existing pending delivery as offer (even with active deliveries, if under limit)
   useEffect(() => {
-    if (existingPending && !pendingOffer && !activeDelivery) {
+    if (existingPending && !pendingOffer && canAcceptMore) {
       setPendingOffer(existingPending);
     }
-  }, [existingPending, activeDelivery]);
+  }, [existingPending, canAcceptMore]);
 
   // Realtime subscription for NEW pending deliveries
   useEffect(() => {
@@ -89,7 +113,6 @@ export function useDeliveries() {
 
   const acceptDelivery = useMutation({
     mutationFn: async (deliveryId: string) => {
-      // First get the delivery to know external_order_id
       const { data: delivery } = await supabase
         .from('deliveries')
         .select('external_order_id')
@@ -103,7 +126,6 @@ export function useDeliveries() {
         .eq('status', 'pending');
       if (error) throw error;
 
-      // Sync to Multipedidos (fire-and-forget)
       if (delivery?.external_order_id) {
         syncStatusToMultipedidos(delivery.external_order_id, 'accepted');
       }
@@ -117,25 +139,21 @@ export function useDeliveries() {
   const updateDeliveryStatus = useMutation({
     mutationFn: async ({ id, status, externalOrderId }: { id: string; status: string; externalOrderId?: string }) => {
       if (status === 'delivered') {
-        // Use atomic RPC to mark delivered + credit wallet in one transaction
         const { data, error } = await supabase.rpc('credit_driver_delivery', {
           _delivery_id: id,
           _driver_id: user!.id,
         });
         if (error) throw error;
 
-        // Sync to Multipedidos
         if (externalOrderId) {
           syncStatusToMultipedidos(externalOrderId, 'delivered');
         }
         return data;
       }
 
-      // For other status changes (e.g. picked_up), simple update
       const { error } = await supabase.from('deliveries').update({ status }).eq('id', id);
       if (error) throw error;
 
-      // Sync to Multipedidos
       if (externalOrderId) {
         syncStatusToMultipedidos(externalOrderId, status);
       }
@@ -148,5 +166,18 @@ export function useDeliveries() {
     },
   });
 
-  return { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus, loading: isLoading };
+  return {
+    activeDeliveries,
+    currentDelivery,
+    currentIndex: safeIndex,
+    setDeliveryIndex,
+    nextDelivery,
+    phase,
+    canAcceptMore,
+    pendingOffer,
+    dismissOffer,
+    acceptDelivery,
+    updateDeliveryStatus,
+    loading: isLoading,
+  };
 }

@@ -55,7 +55,6 @@ const deliveryIconActive = L.divIcon({
   iconAnchor: [18, 36],
 });
 
-// Simple map center for idle mode
 function MapCenterUpdater({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
@@ -64,13 +63,11 @@ function MapCenterUpdater({ center }: { center: [number, number] }) {
   return null;
 }
 
-// Navigation follower - keeps driver + destination in view
 function NavigationFollower({ driverPos, destPos, enabled }: { driverPos: [number, number]; destPos: [number, number] | null; enabled: boolean }) {
   const map = useMap();
   const userInteractedRef = useRef(false);
   const lastFitRef = useRef('');
 
-  // Detect manual interaction
   useEffect(() => {
     if (!enabled) return;
     const onMove = () => { userInteractedRef.current = true; };
@@ -78,12 +75,10 @@ function NavigationFollower({ driverPos, destPos, enabled }: { driverPos: [numbe
     return () => { map.off('dragstart', onMove); };
   }, [map, enabled]);
 
-  // Reset interaction flag via recenter
   const recenter = useCallback(() => {
     userInteractedRef.current = false;
   }, []);
 
-  // Auto-fit
   useEffect(() => {
     if (!enabled || userInteractedRef.current) return;
     if (driverPos[0] === 0) return;
@@ -103,7 +98,6 @@ function NavigationFollower({ driverPos, destPos, enabled }: { driverPos: [numbe
     }
   }, [map, driverPos, destPos, enabled]);
 
-  // Expose recenter via ref
   useEffect(() => {
     (map as any).__recenterNav = recenter;
   }, [map, recenter]);
@@ -111,7 +105,6 @@ function NavigationFollower({ driverPos, destPos, enabled }: { driverPos: [numbe
   return null;
 }
 
-// Notification beep using Web Audio API
 function playNotificationBeep() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -151,7 +144,18 @@ export default function DriverMap() {
   const prevOfferRef = useRef<string | null>(null);
   const mapRef = useRef<L.Map | null>(null);
 
-  const { activeDelivery, pendingOffer, dismissOffer, acceptDelivery, updateDeliveryStatus } = useDeliveries();
+  const {
+    activeDeliveries,
+    currentDelivery,
+    currentIndex,
+    setDeliveryIndex,
+    phase,
+    canAcceptMore,
+    pendingOffer,
+    dismissOffer,
+    acceptDelivery,
+    updateDeliveryStatus,
+  } = useDeliveries();
   const { balance } = useWallet();
   useDriverLocation(isOnline);
 
@@ -166,9 +170,9 @@ export default function DriverMap() {
     return () => navigator.geolocation.clearWatch(id);
   }, []);
 
-  // Show offer + alert when pending arrives
+  // Show offer when pending arrives (allow even with active deliveries if under limit)
   useEffect(() => {
-    if (pendingOffer && isOnline && !activeDelivery) {
+    if (pendingOffer && isOnline && canAcceptMore) {
       setShowOffer(true);
       setCountdown(30);
       if (prevOfferRef.current !== pendingOffer.id) {
@@ -177,7 +181,7 @@ export default function DriverMap() {
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
       }
     }
-  }, [pendingOffer, isOnline, activeDelivery]);
+  }, [pendingOffer, isOnline, canAcceptMore]);
 
   // Countdown timer
   useEffect(() => {
@@ -205,20 +209,26 @@ export default function DriverMap() {
     toast('Corrida recusada');
   }, [dismissOffer]);
 
-  const handlePickup = () => {
-    if (!activeDelivery) return;
-    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'picked_up', externalOrderId: activeDelivery.external_order_id ?? undefined });
+  const handlePickup = (delivery: any) => {
+    updateDeliveryStatus.mutate({
+      id: delivery.id,
+      status: 'picked_up',
+      externalOrderId: delivery.external_order_id ?? undefined,
+    });
     setNavInstructions([]);
     setRouteInfo(null);
-    toast.success('Coleta confirmada! Siga para a entrega.');
+    toast.success('Coleta confirmada!');
   };
 
-  const handleDelivered = () => {
-    if (!activeDelivery) return;
-    updateDeliveryStatus.mutate({ id: activeDelivery.id, status: 'delivered', externalOrderId: activeDelivery.external_order_id ?? undefined });
+  const handleDelivered = (delivery: any) => {
+    updateDeliveryStatus.mutate({
+      id: delivery.id,
+      status: 'delivered',
+      externalOrderId: delivery.external_order_id ?? undefined,
+    });
     setNavInstructions([]);
     setRouteInfo(null);
-    toast.success(`R$ ${Number(activeDelivery.fare).toFixed(2)} creditados! 🎉`);
+    toast.success(`R$ ${Number(delivery.fare).toFixed(2)} creditados! 🎉`);
   };
 
   const toggleOnline = () => {
@@ -236,11 +246,13 @@ export default function DriverMap() {
     }
   };
 
-  // Compute destination for route/markers
-  const isPickup = activeDelivery?.status === 'accepted';
-  const destLat = activeDelivery ? (isPickup ? activeDelivery.pickup_lat : activeDelivery.delivery_lat) : null;
-  const destLng = activeDelivery ? (isPickup ? activeDelivery.pickup_lng : activeDelivery.delivery_lng) : null;
+  // Current destination for route/navigation
+  const isPickup = currentDelivery?.status === 'accepted';
+  const destLat = currentDelivery ? (isPickup ? currentDelivery.pickup_lat : currentDelivery.delivery_lat) : null;
+  const destLng = currentDelivery ? (isPickup ? currentDelivery.pickup_lng : currentDelivery.delivery_lng) : null;
   const destPos: [number, number] | null = destLat && destLng ? [destLat, destLng] : null;
+
+  const hasActiveDeliveries = activeDeliveries.length > 0;
 
   return (
     <div className="fixed inset-0 bg-background">
@@ -255,29 +267,36 @@ export default function DriverMap() {
         <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
 
-        {/* Destination markers */}
-        {activeDelivery && activeDelivery.pickup_lat && activeDelivery.pickup_lng && (
-          <Marker
-            position={[activeDelivery.pickup_lat, activeDelivery.pickup_lng]}
-            icon={isPickup ? pickupIconActive : pickupIcon}
-          />
-        )}
-        {activeDelivery && activeDelivery.delivery_lat && activeDelivery.delivery_lng && (
-          <Marker
-            position={[activeDelivery.delivery_lat, activeDelivery.delivery_lng]}
-            icon={!isPickup ? deliveryIconActive : deliveryIcon}
-          />
-        )}
+        {/* Markers for ALL active deliveries */}
+        {activeDeliveries.map((d: any, i: number) => {
+          const isCurrent = i === currentIndex;
+          return (
+            <span key={d.id}>
+              {d.pickup_lat && d.pickup_lng && (
+                <Marker
+                  position={[d.pickup_lat, d.pickup_lng]}
+                  icon={isCurrent && d.status === 'accepted' ? pickupIconActive : pickupIcon}
+                />
+              )}
+              {d.delivery_lat && d.delivery_lng && (
+                <Marker
+                  position={[d.delivery_lat, d.delivery_lng]}
+                  icon={isCurrent && d.status === 'picked_up' ? deliveryIconActive : deliveryIcon}
+                />
+              )}
+            </span>
+          );
+        })}
 
         {/* Navigation follower or idle center */}
-        {activeDelivery ? (
+        {hasActiveDeliveries ? (
           <NavigationFollower driverPos={position} destPos={destPos} enabled={true} />
         ) : (
           <MapCenterUpdater center={position} />
         )}
 
-        {/* Route display */}
-        {activeDelivery && destPos && (
+        {/* Route display for current delivery only */}
+        {currentDelivery && destPos && (
           <RouteDisplay
             origin={position}
             destination={destPos}
@@ -288,12 +307,12 @@ export default function DriverMap() {
         )}
       </MapContainer>
 
-      {/* Navigation Bar - turn-by-turn */}
-      {activeDelivery && (
+      {/* Navigation Bar */}
+      {currentDelivery && (
         <NavigationBar
           instruction={navInstructions[0] || null}
           isPickup={!!isPickup}
-          destinationLabel={isPickup ? activeDelivery.pickup_address : activeDelivery.delivery_address}
+          destinationLabel={isPickup ? currentDelivery.pickup_address : currentDelivery.delivery_address}
         />
       )}
 
@@ -312,8 +331,8 @@ export default function DriverMap() {
       {/* Map Style Selector */}
       <MapStyleSelector current={style} onChange={setStyle} />
 
-      {/* Recenter button - only during active delivery */}
-      {activeDelivery && (
+      {/* Recenter button */}
+      {hasActiveDeliveries && (
         <div className="absolute bottom-44 right-4 z-[1000]">
           <Button
             variant="outline"
@@ -328,7 +347,7 @@ export default function DriverMap() {
       )}
 
       {/* Earnings mini card */}
-      {isOnline && !activeDelivery && !showOffer && (
+      {isOnline && !hasActiveDeliveries && !showOffer && (
         <div className="absolute bottom-24 left-4 z-[1000]">
           <div className="bg-background rounded-2xl shadow-xl px-4 py-3 border border-border">
             <p className="text-xs text-muted-foreground">Saldo</p>
@@ -349,10 +368,13 @@ export default function DriverMap() {
         )}
       </AnimatePresence>
 
-      {/* Active Delivery - Swipeable Drawer */}
-      {activeDelivery && (
+      {/* Active Deliveries - Batch UI */}
+      {hasActiveDeliveries && (
         <ActiveDeliverySheet
-          delivery={activeDelivery}
+          deliveries={activeDeliveries}
+          currentIndex={currentIndex}
+          onSelectIndex={setDeliveryIndex}
+          phase={phase}
           onPickup={handlePickup}
           onDelivered={handleDelivered}
           routeInfo={routeInfo}
