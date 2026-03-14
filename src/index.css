@@ -150,3 +150,8 @@
 .leaflet-container {
   z-index: 0;
 }
+
+/* Hide Leaflet Routing Machine itinerary */
+.leaflet-routing-container {
+  display: none !important;
+}
