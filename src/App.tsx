@@ -78,6 +78,7 @@ const App = () => (
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/install" element={<InstallPWA />} />
           <Route path="/r/:code" element={<ReferralRedirect />} />
+          <Route path="/terms" element={<Terms />} />
 
           {/* Auth */}
           <Route path="/auth/login" element={<Login />} />
