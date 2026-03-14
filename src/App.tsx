@@ -31,6 +31,7 @@ import AdminOverview from '@/pages/admin/Overview';
 import AdminMissions from '@/pages/admin/Missions';
 import AdminPrizes from '@/pages/admin/Prizes';
 import AdminCommissions from '@/pages/admin/Commissions';
+import AdminOrders from '@/pages/admin/Orders';
 import InstallPWA from '@/pages/InstallPWA';
 import Terms from '@/pages/Terms';
 import InfluencerPersonalData from '@/pages/influencer/PersonalData';
@@ -111,6 +112,7 @@ const App = () => (
           {/* Admin — Protected */}
           <Route element={<ProtectedRoute requiredRole="admin" />}>
             <Route path="/admin" element={<AdminOverview />} />
+            <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/missions" element={<AdminMissions />} />
             <Route path="/admin/prizes" element={<AdminPrizes />} />
             <Route path="/admin/commissions" element={<AdminCommissions />} />
