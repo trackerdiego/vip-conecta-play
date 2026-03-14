@@ -155,6 +155,21 @@ export default function DriverMap() {
         <TileLayer url={tileUrl} attribution='&copy; <a href="https://locationiq.com">LocationIQ</a>' />
         <Marker position={position} icon={driverIcon} />
         <MapCenterUpdater center={position} />
+        {activeDelivery && (() => {
+          const isPickup = activeDelivery.status === 'accepted';
+          const destLat = isPickup ? activeDelivery.pickup_lat : activeDelivery.delivery_lat;
+          const destLng = isPickup ? activeDelivery.pickup_lng : activeDelivery.delivery_lng;
+          if (destLat && destLng) {
+            return (
+              <RouteDisplay
+                origin={position}
+                destination={[destLat, destLng]}
+                onRouteFound={(distance, duration) => setRouteInfo({ distance, duration })}
+              />
+            );
+          }
+          return null;
+        })()}
       </MapContainer>
 
       {/* Top Bar */}
