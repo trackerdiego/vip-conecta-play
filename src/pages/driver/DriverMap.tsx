@@ -67,6 +67,7 @@ export default function DriverMap() {
   const [position, setPosition] = useState<[number, number]>([-3.7319, -38.5267]);
   const [countdown, setCountdown] = useState(30);
   const [showOffer, setShowOffer] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{ distance: number; duration: number } | null>(null);
   const { style, setStyle, tileUrl } = useMapStyle();
   const prevOfferRef = useRef<string | null>(null);
 
