@@ -10,12 +10,90 @@ const corsHeaders = {
 const PICKUP_LAT = -3.7373;
 const PICKUP_LNG = -38.6531;
 
+const MULTIPEDIDOS_API = "https://api.multipedidos.com.br/v2";
+
+// Mapeamento de status interno → Multipedidos
+const STATUS_MAP: Record<string, string> = {
+  accepted: "dispatched",
+  picked_up: "collected",
+  delivered: "delivered",
+};
+
 function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 }
+
+// ── Multipedidos Auth ──────────────────────────────────────────────
+
+async function getMultipedidosJwt(): Promise<string> {
+  const token = Deno.env.get("MULTIPEDIDOS_INTEGRATION_TOKEN");
+  if (!token) throw new Error("MULTIPEDIDOS_INTEGRATION_TOKEN not set");
+
+  const res = await fetch(`${MULTIPEDIDOS_API}/integration/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Multipedidos auth failed [${res.status}]: ${body}`);
+  }
+
+  const data = await res.json();
+  // JWT may come as data.token or data.access_token depending on API version
+  const jwt = data.token || data.access_token;
+  if (!jwt) throw new Error("No JWT returned from Multipedidos auth");
+  return jwt;
+}
+
+// ── Update Status on Multipedidos ──────────────────────────────────
+
+async function updateMultipedidosStatus(
+  externalOrderId: string,
+  appStatus: string,
+): Promise<{ ok: boolean; detail?: string }> {
+  const mpStatus = STATUS_MAP[appStatus];
+  if (!mpStatus) {
+    return { ok: false, detail: `Unknown status mapping for: ${appStatus}` };
+  }
+
+  try {
+    const jwt = await getMultipedidosJwt();
+
+    // Try the status update endpoint — adjust path if Multipedidos uses a different one
+    const res = await fetch(
+      `${MULTIPEDIDOS_API}/orders/${externalOrderId}/status`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({ status: mpStatus }),
+      },
+    );
+
+    const body = await res.text();
+    console.log(
+      `Multipedidos status update [${externalOrderId}] → ${mpStatus}: ${res.status} ${body}`,
+    );
+
+    if (!res.ok) {
+      return { ok: false, detail: `HTTP ${res.status}: ${body}` };
+    }
+
+    return { ok: true };
+  } catch (err) {
+    console.error("Multipedidos status update error:", err);
+    return { ok: false, detail: err.message };
+  }
+}
+
+// ── Referral helpers ───────────────────────────────────────────────
 
 function extractReferralCode(order: any): string | null {
   return (
@@ -80,9 +158,8 @@ async function creditReferral(
   return saleId;
 }
 
-/**
- * Extract clean geocoding fields from order data.
- */
+// ── Geocoding ──────────────────────────────────────────────────────
+
 function buildGeoQuery(order: any): { street: string; city: string; state: string } {
   const street = order.address || order.client?.street || "";
   const number = order.street_number || order.client?.street_number || "";
@@ -93,9 +170,6 @@ function buildGeoQuery(order: any): { street: string; city: string; state: strin
   return { street: streetFull, city, state: "Ceará" };
 }
 
-/**
- * Geocode using Nominatim structured query, with fallback to free-form.
- */
 async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } | null> {
   const { street, city, state } = buildGeoQuery(order);
   if (!street) return null;
@@ -103,7 +177,6 @@ async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } 
   const headers = { "User-Agent": "ParadaDoAcaiVIP/1.0" };
 
   try {
-    // Attempt 1: structured query
     const structuredUrl = `https://nominatim.openstreetmap.org/search?format=json&street=${encodeURIComponent(street)}&city=${encodeURIComponent(city)}&state=${encodeURIComponent(state)}&country=Brazil&limit=1`;
     console.log(`Geocode structured: street="${street}" city="${city}"`);
 
@@ -117,7 +190,6 @@ async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } 
       }
     }
 
-    // Attempt 2: simple free-form with just street + city
     const freeQuery = `${street}, ${city}, CE, Brasil`;
     const freeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(freeQuery)}&limit=1`;
     console.log(`Geocode fallback: "${freeQuery}"`);
@@ -139,6 +211,8 @@ async function geocodeAddress(order: any): Promise<{ lat: number; lng: number } 
     return null;
   }
 }
+
+// ── Delivery creation ──────────────────────────────────────────────
 
 function buildDeliveryAddress(order: any): string {
   const street = order.address || order.client?.street || "";
@@ -165,12 +239,10 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
     ? `Mesa: ${order.table || "N/A"}`
     : buildDeliveryAddress(order);
 
-  // Try to get delivery coordinates from order data first
   const clientCoords = order.client?.coordinates;
   let deliveryLat = clientCoords?.lat || clientCoords?.latitude || null;
   let deliveryLng = clientCoords?.lng || clientCoords?.longitude || null;
 
-  // If no coordinates from order, geocode from order fields
   if (!deliveryLat && !deliveryLng && order.delivery_type !== "table") {
     const geocoded = await geocodeAddress(order);
     if (geocoded) {
@@ -199,6 +271,8 @@ async function createDelivery(order: any, externalId: string, supabaseAdmin: any
   if (error) throw error;
   return { created: !data ? false : true, id: externalId };
 }
+
+// ── Webhook handler ────────────────────────────────────────────────
 
 async function handleWebhook(body: any) {
   console.log("=== WEBHOOK PAYLOAD ===");
@@ -239,6 +313,8 @@ async function handleWebhook(body: any) {
   return results;
 }
 
+// ── Main handler ───────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -248,6 +324,7 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "webhook";
 
+    // ─── Webhook: receive orders from Multipedidos ───
     if (action === "webhook" && req.method === "POST") {
       const body = await req.json();
       const results = await handleWebhook(body);
@@ -256,6 +333,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── Update status: sync driver actions back to Multipedidos ───
+    if (action === "update_status" && req.method === "POST") {
+      const { external_order_id, status } = await req.json();
+
+      if (!external_order_id || !status) {
+        return new Response(
+          JSON.stringify({ error: "Missing external_order_id or status" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const result = await updateMultipedidosStatus(external_order_id, status);
+      return new Response(JSON.stringify(result), {
+        status: result.ok ? 200 : 502,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── Test auth ───
     if (action === "test_auth") {
       const token = Deno.env.get("MULTIPEDIDOS_INTEGRATION_TOKEN");
       if (!token) {
