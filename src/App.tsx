@@ -32,6 +32,7 @@ import AdminMissions from '@/pages/admin/Missions';
 import AdminPrizes from '@/pages/admin/Prizes';
 import AdminCommissions from '@/pages/admin/Commissions';
 import AdminOrders from '@/pages/admin/Orders';
+import AdminOperations from '@/pages/admin/Operations';
 import InstallPWA from '@/pages/InstallPWA';
 import Terms from '@/pages/Terms';
 import InfluencerPersonalData from '@/pages/influencer/PersonalData';
@@ -116,6 +117,7 @@ const App = () => (
             <Route path="/admin/missions" element={<AdminMissions />} />
             <Route path="/admin/prizes" element={<AdminPrizes />} />
             <Route path="/admin/commissions" element={<AdminCommissions />} />
+            <Route path="/admin/operations" element={<AdminOperations />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
