@@ -68,6 +68,20 @@ export default function AdminOverview() {
           ))}
         </div>
 
+        {/* Operations CTA */}
+        <Link
+          to="/admin/operations"
+          className="mb-6 flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+        >
+          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <Radio className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground">Central de Operações</p>
+            <p className="text-sm text-muted-foreground">Monitoramento em tempo real dos entregadores</p>
+          </div>
+        </Link>
+
         <div className="flex gap-4 flex-wrap">
           <Link to="/admin/missions" className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
             Gerenciar Missões
