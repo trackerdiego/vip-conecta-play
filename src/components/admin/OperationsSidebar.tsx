@@ -1,9 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Loader2, Radio } from 'lucide-react';
 import { DeliveryCard } from './DeliveryCard';
-import type { DriverInfo } from '@/hooks/useAdminOperations';
-
-type StatusFilter = 'all' | 'online' | 'em_rota' | 'alerta';
+import type { DriverInfo, StatusFilter } from '@/hooks/useAdminOperations';
 
 interface OperationsSidebarProps {
   drivers: DriverInfo[];
@@ -18,6 +16,7 @@ interface OperationsSidebarProps {
 const FILTERS: { key: StatusFilter; label: string; color: string }[] = [
   { key: 'all', label: 'Todos', color: 'bg-muted text-foreground' },
   { key: 'online', label: 'Online', color: 'bg-green-500/20 text-green-400' },
+  { key: 'pronto', label: 'Pronto', color: 'bg-yellow-500/20 text-yellow-400' },
   { key: 'em_rota', label: 'Em Rota', color: 'bg-blue-500/20 text-blue-400' },
   { key: 'alerta', label: 'Alerta', color: 'bg-red-500/20 text-red-400' },
 ];
