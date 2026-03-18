@@ -19,8 +19,11 @@ export default function Operations() {
         <h1 className="text-sm font-semibold text-foreground">Central de Operações</h1>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-muted-foreground">
-            {ops.counts.online} online · {ops.counts.em_rota} em rota
+            {ops.counts.online} online · {ops.counts.em_rota} em rota · {ops.counts.pronto} pronto
           </span>
+          {ops.counts.alerta > 0 && (
+            <span className="text-xs text-red-400 font-medium">{ops.counts.alerta} alerta(s)</span>
+          )}
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
         </div>
       </div>
