@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export const STORE_LAT = -3.7373;
-export const STORE_LNG = -38.6531;
+export const STORE_LAT = -3.7424;
+export const STORE_LNG = -38.6635;
 export const STORE_ADDRESS = 'Rua 100, 202 - Planalto Caucaia';
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
