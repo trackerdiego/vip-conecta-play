@@ -99,7 +99,7 @@ async function updateMultipedidosStatus(
     return { ok: true };
   } catch (err) {
     console.error("Multipedidos status update error:", err);
-    return { ok: false, detail: err.message };
+    return { ok: false, detail: (err as Error).message };
   }
 }
 
