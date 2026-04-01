@@ -1,22 +1,16 @@
 
 
-# Exportar SQL completo de todas as tabelas
+# Regenerar SQL sem tabelas com UUID de usuário
 
-## O que será feito
-Executar queries em todas as 15 tabelas do banco e gerar um arquivo SQL único com `INSERT INTO` statements para cada registro, pronto para importar em outro banco.
+## Tabelas que serão incluídas (dados de configuração/conteúdo)
+- `commission_rates` — taxas de comissão por nível
+- `missions` — missões disponíveis
+- `prizes` — prêmios cadastrados
+- `orders` — pedidos (sem FK de usuário)
 
-## Tabelas incluídas
-`profiles`, `user_roles`, `wallets`, `transactions`, `orders`, `deliveries`, `driver_locations`, `missions`, `user_missions`, `prizes`, `user_prizes`, `commission_rates`, `referral_sales`, `traccar_devices`, `withdrawal_requests`
-
-## Formato de saída
-Arquivo `/mnt/documents/migration_complete.sql` contendo:
-1. Comentários separando cada tabela
-2. Statements `INSERT INTO ... VALUES (...)` para cada linha
-3. Ordem respeitando dependências (ex: `profiles` antes de `user_roles`, `wallets` antes de `transactions`)
+## Tabelas excluídas (dependem de UUIDs de usuário)
+`profiles`, `user_roles`, `wallets`, `transactions`, `deliveries`, `driver_locations`, `user_missions`, `user_prizes`, `referral_sales`, `traccar_devices`, `withdrawal_requests`
 
 ## Execução
-Script Python usando `psql` para extrair dados de cada tabela via `COPY TO STDOUT WITH CSV HEADER`, converter para SQL INSERT statements, e salvar no arquivo final.
-
-## Build errors existentes
-Também corrigirei os 2 erros de TypeScript em `multipedidos-sync/index.ts` onde `err` é do tipo `unknown` (precisa de cast `(err as Error).message`).
+Script Python via `psql` exportando apenas as 4 tabelas acima como `INSERT INTO ... ON CONFLICT DO NOTHING`, salvo em `/mnt/documents/migration_data_only.sql`.
 
