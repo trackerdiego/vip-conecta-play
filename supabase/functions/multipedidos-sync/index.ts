@@ -99,7 +99,7 @@ async function updateMultipedidosStatus(
     return { ok: true };
   } catch (err) {
     console.error("Multipedidos status update error:", err);
-    return { ok: false, detail: err.message };
+    return { ok: false, detail: (err as Error).message };
   }
 }
 
@@ -509,7 +509,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("multipedidos-sync error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
